@@ -1,0 +1,118 @@
+name: Build and publish release packages
+
+permissions:
+    contents: write
+
+on:
+    release:
+        types: [published]
+
+env:
+    APP_NAME: vayload
+    VERSION: ${{ github.event.release.tag_name }}
+
+jobs:
+    test:
+        name: Run tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup Go
+              uses: actions/setup-go@v4
+              with:
+                  go-version: 1.21
+            - name: Run Go tests
+              run: go test ./... -v
+
+            - name: Setup Node
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 20
+            - name: Install frontend dependencies
+              run: |
+                  cd public
+                  npm ci
+            - name: Run frontend tests
+              run: |
+                  cd public
+                  npm run test
+
+    build:
+        name: Build binaries and frontend
+        needs: test
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                include:
+                    - os: ubuntu-latest
+                      target: linux
+                    - os: macos-latest
+                      target: macos
+                    - os: windows-latest
+                      target: windows
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Build vayload CLI
+              run: |
+                  mkdir -p dist/vayload
+                  if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+                    go build -o dist/vayload/vayload.exe ./cmd/vayload
+                  else
+                    go build -o dist/vayload/vayload ./cmd/vayload
+                  fi
+
+            - name: Build vayload-server
+              run: |
+                  mkdir -p dist/vayload-server
+                  if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+                    go build -o dist/vayload-server/vayload-server.exe ./cmd/vayload-server
+                  else
+                    go build -o dist/vayload-server/vayload-server ./cmd/vayload-server
+                  fi
+
+            - name: Build frontend admin
+              run: |
+                  cd admin
+                  npm ci
+                  npm run build
+                  cd ..
+                  mkdir -p dist/admin
+                  cp -r admin/dist/* dist/admin/
+
+            - name: Package release
+              run: |
+                  mkdir -p dist/package
+                  cp -r dist/vayload* dist/vayload-server dist/admin dist/package/
+                  cd dist/package
+                  if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+                    powershell Compress-Archive -Path * -DestinationPath ../${APP_NAME}-full-${VERSION}-${{ matrix.target }}.zip
+                    powershell Get-FileHash ../${APP_NAME}-full-${VERSION}-${{ matrix.target }}.zip -Algorithm SHA256 | ForEach-Object {
+                      "$($_.Hash) $($_.Name)" | Out-File ../checksums-${{ matrix.target }}.txt -Append -Encoding ascii
+                    }
+                  else
+                    tar -czf ../${APP_NAME}-full-${VERSION}-${{ matrix.target }}.tar.gz *
+                    sha256sum ../${APP_NAME}-full-${VERSION}-${{ matrix.target }}.tar.gz > ../checksums-${{ matrix.target }}.txt
+                  fi
+
+            - name: Upload artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ matrix.target }}
+                  path: dist/*
+
+    release:
+        name: Upload Release Assets
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - name: Download artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: dist
+            - name: Upload assets to GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: dist/**/*

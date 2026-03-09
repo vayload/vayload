@@ -1,0 +1,115 @@
+{
+    app: {
+        env: "debug", // production | development | debug
+        working_dir: "D:/worklance/vayload",
+        domain: ".vayload.me",
+        secret_key: "xxx",
+        api_key: "xxx",
+    },
+
+    http: {
+        host: "0.0.0.0",
+        port: 4040,
+    },
+
+    grpc: {
+        host: "0.0.0.0",
+        port: 50051,
+        api_key: "xxx",
+    },
+
+    mcp: {
+        host: "0.0.0.0",
+        port: 9001,
+        api_key: "xxx",
+    },
+
+    cors: {
+        allow_origins: [
+            "https://app.vayload.me",
+            "http://localhost:3000",
+            "https://app.vayload.com",
+            "https://app.vayload.live",
+            "http://localhost:3004",
+            "https://admin.vayload.me",
+        ],
+    },
+
+    database: {
+        driver: "sqlite3", // sqlite3 | turso | mysql | mariadb | postgres
+        user: "root",
+        password: "root",
+        host: "localhost",
+        port: 3306,
+        schema: "vayload",
+        migrations_path: "${WORKING_DIR}/migrations",
+    },
+
+    rate_limit: {
+        // Or empty to disable
+        global: {
+            window_ms: 900000,
+            max: 100,
+        },
+        matches: [
+            {
+                path: "/api/v1/matches/*",
+                window_ms: 900000,
+                max: 100,
+            },
+            {
+                path: "/api/v1/matches/*",
+                window_ms: 900000,
+                max: 100,
+            },
+        ],
+    },
+
+    logging: {
+        level: "info",
+    },
+
+    jwt: {
+        public_rsa_key: "xxx",
+        private_rsa_key: "xxx",
+        public_hmac_key: "xxx",
+        expires_in_minutes: 30,
+        refresh_expires_in_hours: 48,
+    },
+
+    magic_link: {
+        secret_key: "xxx",
+        expires_in_minutes: 10,
+    },
+
+    oauth: {
+        redirect_base: "https://api.vayload.me",
+
+        google: {
+            client_id: "xxx",
+            client_secret: "xxx",
+        },
+
+        facebook: {
+            client_id: "xxx",
+            client_secret: "xxx",
+        },
+
+        apple: {
+            client_id: "xxx",
+            team_id: "xxx",
+            key_id: "xxx",
+            key: "xxx",
+        },
+    },
+
+    queue: {
+        host: "localhost",
+        port: 9000,
+        api_key: "xxx",
+    },
+
+    plugins: {
+        registry_uri: "http://localhost:8080/api/v1",
+    },
+}

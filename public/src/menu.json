@@ -1,0 +1,55 @@
+{
+    "Dashboard": {
+        "Overview": "/dashboard",
+        "Activity": "/activity",
+        "Notifications": "/notifications"
+    },
+    "Content Management": {
+        "Content Types": "/content/types",
+        "Categories": "/content/categories",
+        "Entries": "/content/entries",
+        "Drafts": "/content/drafts",
+        "Revisions": "/content/revisions",
+        "Authors": "/content/authors",
+        "Media Library": {
+            "Image Variants": "/media/variants",
+            "Files": "/media/files"
+        }
+    },
+    "Commerce": {
+        "Products": "/commerce/products",
+        "Categories": "/commerce/categories",
+        "Orders": "/commerce/orders",
+        "Customers": "/commerce/customers",
+        "Payments": "/commerce/payments",
+        "Shipping": "/commerce/shipping",
+        "Discounts": "/commerce/discounts"
+    },
+    "Plugins": {
+        "Marketplace": "/plugins/marketplace",
+        "Installed": "/plugins/installed"
+    },
+    "Automation": {
+        "Workflows": "/automation/workflows",
+        "Triggers": "/automation/triggers",
+        "Webhooks": "/automation/webhooks",
+        "Jobs": "/automation/jobs"
+    },
+    "Integrations": {
+        "API Keys": "/integrations/api-keys",
+        "Imports/Exports": "/integrations/imports"
+    },
+    "Administration": {
+        "Users": "/administration/users",
+        "Roles & Permissions": "/administration/roles-permissions",
+        "Environments": "/administration/environments",
+        "Audit Logs": "/administration/audit-logs",
+        "Backups": "/administration/backups"
+    },
+    "Bottom Menu": {
+        "Settings": "/settings",
+        "Help & Docs": "/help-docs",
+        "Changelog": "/changelog",
+        "Logout": "/logout"
+    }
+}

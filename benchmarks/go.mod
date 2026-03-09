@@ -1,0 +1,17 @@
+module github.com/vayload/benchmarks
+
+go 1.25.0
+
+require (
+	github.com/Shopify/go-lua v0.0.0-20250718183320-1e37f32ad7d0
+	github.com/d5/tengo/v2 v2.17.0
+	github.com/dop251/goja v0.0.0-20260226184354-913bd86fb70c
+	github.com/yuin/gopher-lua v1.1.1
+)
+
+require (
+	github.com/dlclark/regexp2 v1.11.4 // indirect
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
+	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
+	golang.org/x/text v0.32.0 // indirect
+)

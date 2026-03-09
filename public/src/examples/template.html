@@ -1,0 +1,596 @@
+<!doctype html>
+
+<html class="" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>Unified AI Platform Dashboard</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            primary: "#000000",
+                            "background-light": "#f7f7f7",
+                            "background-dark": "#191919",
+                            "zinc-custom": "#f4f4f5",
+                        },
+                        fontFamily: { display: "Inter" },
+                        borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
+                    },
+                },
+            };
+        </script>
+        <style>
+            body {
+                font-family: "Inter", sans-serif;
+            }
+            .sidebar-scroll::-webkit-scrollbar {
+                width: 4px;
+            }
+            .sidebar-scroll::-webkit-scrollbar-thumb {
+                background: #e4e4e7;
+                border-radius: 10px;
+            }
+        </style>
+    </head>
+    <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+        <div class="flex h-screen overflow-hidden">
+            <!-- Sidebar -->
+            <aside
+                class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark flex flex-col transition-all duration-300"
+            >
+                <div class="p-6 flex items-center gap-3">
+                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                        <span class="material-symbols-outlined text-xl">temp_preferences_custom</span>
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-bold leading-none">Nexus AI</h1>
+                        <p class="text-[10px] text-slate-500 mt-1">v2.4.0 • Enterprise</p>
+                    </div>
+                </div>
+                <nav class="flex-1 overflow-y-auto sidebar-scroll px-4 space-y-6 pb-6">
+                    <!-- Hub Section -->
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-2">Hub</p>
+                        <div class="space-y-1">
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary font-medium"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">dashboard</span>
+                                <span class="text-sm">Overview</span>
+                            </a>
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">rss_feed</span>
+                                <span class="text-sm">Live Feed</span>
+                            </a>
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">inbox</span>
+                                <span class="text-sm flex-1">Inbox</span>
+                                <span class="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">12</span>
+                            </a>
+                        </div>
+                    </div>
+                    <!-- Content Section -->
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-2">Content</p>
+                        <div class="space-y-1">
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">schema</span>
+                                <span class="text-sm">Schemas</span>
+                            </a>
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">layers</span>
+                                <span class="text-sm">Collections</span>
+                            </a>
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">photo_library</span>
+                                <span class="text-sm">Library</span>
+                            </a>
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">lock</span>
+                                <span class="text-sm">Vault</span>
+                            </a>
+                        </div>
+                    </div>
+                    <!-- Store Section -->
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-2">Store</p>
+                        <div class="space-y-1">
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">inventory_2</span>
+                                <span class="text-sm">Inventory</span>
+                            </a>
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">category</span>
+                                <span class="text-sm">Catalog</span>
+                            </a>
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+                                <span class="text-sm">Orders</span>
+                            </a>
+                        </div>
+                    </div>
+                    <!-- Automation Section -->
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-2">
+                            Automation
+                        </p>
+                        <div class="space-y-1">
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">account_tree</span>
+                                <span class="text-sm">Workflows</span>
+                            </a>
+                            <a
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                href="#"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">bolt</span>
+                                <span class="text-sm">Triggers</span>
+                            </a>
+                        </div>
+                    </div>
+                </nav>
+                <div class="p-4 border-t border-slate-200 dark:border-slate-800 space-y-1">
+                    <a
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        href="#"
+                    >
+                        <span class="material-symbols-outlined text-[20px]">settings</span>
+                        <span class="text-sm">Settings</span>
+                    </a>
+                    <a
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        href="#"
+                    >
+                        <span class="material-symbols-outlined text-[20px]">logout</span>
+                        <span class="text-sm">Sign Out</span>
+                    </a>
+                </div>
+            </aside>
+            <!-- Main Content -->
+            <main class="flex-1 flex flex-col overflow-hidden bg-white dark:bg-background-dark">
+                <!-- Topbar -->
+                <header
+                    class="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md sticky top-0 z-10"
+                >
+                    <div class="flex items-center gap-6 w-full max-w-2xl">
+                        <div class="relative w-full">
+                            <span
+                                class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]"
+                                >search</span
+                            >
+                            <input
+                                class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary/20 placeholder:text-slate-400"
+                                placeholder="Ask AI anything..."
+                                type="text"
+                            />
+                        </div>
+                        <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                            <button
+                                class="px-3 py-1 text-[11px] font-bold rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                            >
+                                DEV
+                            </button>
+                            <button
+                                class="px-3 py-1 text-[11px] font-bold rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                            >
+                                STAGING
+                            </button>
+                            <button
+                                class="px-3 py-1 text-[11px] font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-primary"
+                            >
+                                PROD
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button
+                            class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 relative"
+                        >
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            <span
+                                class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full ring-2 ring-white dark:ring-background-dark"
+                            ></span>
+                        </button>
+                        <div class="flex items-center gap-3 ml-2 border-l border-slate-200 dark:border-slate-800 pl-6">
+                            <div class="text-right hidden sm:block">
+                                <p class="text-sm font-bold leading-none">Alex Rivers</p>
+                                <p class="text-[11px] text-slate-500 mt-1">Admin Account</p>
+                            </div>
+                            <img
+                                alt="Profile"
+                                class="w-9 h-9 rounded-full ring-2 ring-primary/20"
+                                data-alt="User profile avatar circular"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhW9_eoU_Kr3K0JAknLGgP8tCsaZ9MzS6VFZs2Bmh1S_t0nCEvhbPNNFw6kMgbUOlg_9bs0xo8pKrVQZmeGKWQ2b_8YCUQa2p3xHu8-ZD3DwQmwJ-dyUmSUsHXb87EoB2cBxVnCx6kaM_yEqjE73mHXIlF8faU9HqVjvUq8oojRDIEyfpzjffith-uRXaYjMEsRtOLkB3o-85zwNk535mpPXfGqD105JStKTqvfw9LMeKijMng285h-cFkkCLbPL1bw4hZIOHYpr0"
+                            />
+                        </div>
+                    </div>
+                </header>
+                <div class="flex-1 overflow-y-auto p-8 bg-zinc-custom dark:bg-background-dark/50">
+                    <div class="flex flex-col xl:flex-row gap-8">
+                        <!-- Dashboard Section -->
+                        <div class="flex-1 space-y-8">
+                            <div>
+                                <h2 class="text-2xl font-bold tracking-tight">Hub Overview</h2>
+                                <p class="text-slate-500 text-sm mt-1">Real-time platform performance and activity.</p>
+                            </div>
+                            <!-- KPI Cards -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div
+                                    class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700"
+                                >
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="p-2 bg-primary/10 rounded-lg">
+                                            <span class="material-symbols-outlined text-primary text-[20px]"
+                                                >payments</span
+                                            >
+                                        </div>
+                                        <span class="text-[12px] font-bold text-green-500">+12.5%</span>
+                                    </div>
+                                    <p class="text-slate-500 text-xs font-medium uppercase tracking-wider">Revenue</p>
+                                    <p class="text-2xl font-bold mt-1">$128,430</p>
+                                </div>
+                                <div
+                                    class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700"
+                                >
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="p-2 bg-blue-500/10 rounded-lg">
+                                            <span class="material-symbols-outlined text-blue-500 text-[20px]"
+                                                >article</span
+                                            >
+                                        </div>
+                                        <span class="text-[12px] font-bold text-green-500">+3.2%</span>
+                                    </div>
+                                    <p class="text-slate-500 text-xs font-medium uppercase tracking-wider">
+                                        Active Content
+                                    </p>
+                                    <p class="text-2xl font-bold mt-1">1,240</p>
+                                </div>
+                                <div
+                                    class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700"
+                                >
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="p-2 bg-amber-500/10 rounded-lg">
+                                            <span class="material-symbols-outlined text-amber-500 text-[20px]"
+                                                >shopping_bag</span
+                                            >
+                                        </div>
+                                        <span class="text-[12px] font-bold text-green-500">+8.4%</span>
+                                    </div>
+                                    <p class="text-slate-500 text-xs font-medium uppercase tracking-wider">
+                                        Total Orders
+                                    </p>
+                                    <p class="text-2xl font-bold mt-1">856</p>
+                                </div>
+                                <div
+                                    class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700"
+                                >
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="p-2 bg-purple-500/10 rounded-lg">
+                                            <span class="material-symbols-outlined text-purple-500 text-[20px]"
+                                                >precision_manufacturing</span
+                                            >
+                                        </div>
+                                        <span class="text-[12px] font-bold text-green-500">+15.1%</span>
+                                    </div>
+                                    <p class="text-slate-500 text-xs font-medium uppercase tracking-wider">
+                                        Automation Runs
+                                    </p>
+                                    <p class="text-2xl font-bold mt-1">42,012</p>
+                                </div>
+                            </div>
+                            <!-- Chart Section -->
+                            <div
+                                class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700"
+                            >
+                                <div class="flex items-center justify-between mb-8">
+                                    <div>
+                                        <h3 class="text-lg font-bold">Platform Growth &amp; Revenue</h3>
+                                        <p class="text-slate-500 text-sm">Aggregated metrics over the last 30 days</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div
+                                            class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg"
+                                        >
+                                            <div class="w-2 h-2 rounded-full bg-primary"></div>
+                                            <span class="text-[11px] font-bold">Revenue</span>
+                                        </div>
+                                        <button class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
+                                            <span class="material-symbols-outlined text-slate-400">more_horiz</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="h-64 relative">
+                                    <svg
+                                        class="w-full h-full"
+                                        fill="none"
+                                        preserveaspectratio="none"
+                                        viewbox="0 0 1000 100"
+                                    >
+                                        <defs>
+                                            <lineargradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+                                                <stop offset="0%" stop-color="#7c3bed" stop-opacity="0.2"></stop>
+                                                <stop offset="100%" stop-color="#7c3bed" stop-opacity="0"></stop>
+                                            </lineargradient>
+                                        </defs>
+                                        <path
+                                            d="M0 80 Q 100 70, 200 85 T 400 60 T 600 75 T 800 30 T 1000 45 V 100 H 0 Z"
+                                            fill="url(#chartGradient)"
+                                        ></path>
+                                        <path
+                                            d="M0 80 Q 100 70, 200 85 T 400 60 T 600 75 T 800 30 T 1000 45"
+                                            fill="none"
+                                            stroke="#7c3bed"
+                                            stroke-linecap="round"
+                                            stroke-width="3"
+                                        ></path>
+                                        <circle
+                                            cx="200"
+                                            cy="85"
+                                            fill="#7c3bed"
+                                            r="4"
+                                            stroke="white"
+                                            stroke-width="2"
+                                        ></circle>
+                                        <circle
+                                            cx="800"
+                                            cy="30"
+                                            fill="#7c3bed"
+                                            r="4"
+                                            stroke="white"
+                                            stroke-width="2"
+                                        ></circle>
+                                    </svg>
+                                    <div
+                                        class="flex justify-between mt-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest px-2"
+                                    >
+                                        <span>May 01</span>
+                                        <span>May 07</span>
+                                        <span>May 14</span>
+                                        <span>May 21</span>
+                                        <span>May 30</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Live Feed -->
+                            <div
+                                class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden"
+                            >
+                                <div
+                                    class="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between"
+                                >
+                                    <h3 class="text-lg font-bold">Live Activity Feed</h3>
+                                    <button class="text-sm font-semibold text-primary hover:underline">View All</button>
+                                </div>
+                                <div class="divide-y divide-slate-50 dark:divide-slate-700">
+                                    <div class="p-6 flex items-start gap-4">
+                                        <div
+                                            class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0"
+                                        >
+                                            <span class="material-symbols-outlined text-green-600 text-[20px]"
+                                                >check_circle</span
+                                            >
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex items-center justify-between">
+                                                <p class="text-sm font-bold">Order #8492 Completed</p>
+                                                <span class="text-xs text-slate-400">2 mins ago</span>
+                                            </div>
+                                            <p class="text-sm text-slate-500 mt-1">
+                                                Customer "Sarah Connor" purchased 3 items from "Summer Collection".
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="p-6 flex items-start gap-4">
+                                        <div
+                                            class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0"
+                                        >
+                                            <span class="material-symbols-outlined text-primary text-[20px]"
+                                                >auto_awesome</span
+                                            >
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex items-center justify-between">
+                                                <p class="text-sm font-bold">AI Workflow Optimization</p>
+                                                <span class="text-xs text-slate-400">14 mins ago</span>
+                                            </div>
+                                            <p class="text-sm text-slate-500 mt-1">
+                                                Autonomous agent "Nexus-Core" optimized schema indexing for performance
+                                                (+12% speed).
+                                            </p>
+                                            <div
+                                                class="mt-2 inline-flex items-center gap-2 px-2 py-1 bg-primary/5 border border-primary/20 rounded-lg text-[11px] font-bold text-primary"
+                                            >
+                                                <span class="material-symbols-outlined text-[14px]">bolt</span>
+                                                AI SUGGESTED ACTION
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="p-6 flex items-start gap-4">
+                                        <div
+                                            class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0"
+                                        >
+                                            <span class="material-symbols-outlined text-amber-600 text-[20px]"
+                                                >warning</span
+                                            >
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex items-center justify-between">
+                                                <p class="text-sm font-bold">Rate Limit Warning</p>
+                                                <span class="text-xs text-slate-400">45 mins ago</span>
+                                            </div>
+                                            <p class="text-sm text-slate-500 mt-1">
+                                                API Key "Prod-Analytics-01" reached 90% of monthly quota.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Right AI Panel -->
+                        <div class="w-full xl:w-80 space-y-6">
+                            <div class="bg-primary p-1 rounded-2xl shadow-xl shadow-primary/20">
+                                <div class="bg-white dark:bg-slate-900 rounded-xl p-6">
+                                    <div class="flex items-center gap-2 mb-6">
+                                        <span class="material-symbols-outlined text-primary">psychology</span>
+                                        <h3 class="text-sm font-bold tracking-tight">AI Insights Summary</h3>
+                                    </div>
+                                    <div class="space-y-6">
+                                        <div class="pb-6 border-b border-slate-100 dark:border-slate-800">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+                                                    >Health Score</span
+                                                >
+                                                <span class="text-sm font-bold text-green-500">98/100</span>
+                                            </div>
+                                            <div
+                                                class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden"
+                                            >
+                                                <div class="w-[98%] h-full bg-green-500"></div>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-4">
+                                            <div class="p-4 bg-primary/5 rounded-xl border border-primary/10">
+                                                <p class="text-xs font-bold text-primary mb-2">
+                                                    Revenue Growth Insight
+                                                </p>
+                                                <p class="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                                                    Your average order value has increased by
+                                                    <strong>18.4%</strong> this month. This correlates with the new
+                                                    "Smart Bundle" automation workflow.
+                                                </p>
+                                            </div>
+                                            <div
+                                                class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800"
+                                            >
+                                                <p class="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">
+                                                    Inventory Alert
+                                                </p>
+                                                <p class="text-sm leading-relaxed text-slate-500">
+                                                    3 items in "Electronics" are trending and will likely sell out in 48
+                                                    hours. AI recommends a restocking order.
+                                                </p>
+                                                <button
+                                                    class="w-full mt-3 py-2 bg-white dark:bg-slate-700 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-50 transition-colors"
+                                                >
+                                                    Generate Restock Plan
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="pt-2">
+                                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                                                Recommended for You
+                                            </h4>
+                                            <div class="space-y-3">
+                                                <div
+                                                    class="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer group"
+                                                >
+                                                    <div
+                                                        class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0"
+                                                    >
+                                                        <span
+                                                            class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-primary transition-colors"
+                                                            >extension</span
+                                                        >
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <p class="text-[12px] font-bold">New Marketing Extension</p>
+                                                        <p class="text-[10px] text-slate-400">Based on your activity</p>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    class="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer group"
+                                                >
+                                                    <div
+                                                        class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0"
+                                                    >
+                                                        <span
+                                                            class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-primary transition-colors"
+                                                            >hub</span
+                                                        >
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <p class="text-[12px] font-bold">Schema Migration Guide</p>
+                                                        <p class="text-[10px] text-slate-400">Optimization potential</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- System Quick Stats -->
+                            <div
+                                class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700"
+                            >
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                                    System Status
+                                </h4>
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-slate-500">API Latency</span>
+                                        <span class="text-sm font-bold">42ms</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-slate-500">Worker Nodes</span>
+                                        <span class="text-sm font-bold text-green-500">12 Online</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-slate-500">DB Utilization</span>
+                                        <span class="text-sm font-bold">14%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </body>
+</html>

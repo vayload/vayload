@@ -1,0 +1,116 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+.cache/*
+bin/*
+data/*
+!data/.gitkeep
+
+# Vayload
+config.toml
+config.json5
+plugins.json5
+
+test.go
+deps.py
+deps.ts
+
+# Vayload development
+plugins/*
+!**/plugins/
+
+# Go workspace and dependencies
+go.work
+go.work.sum
+vendor/
+
+# Test coverage
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+private.rsa
+public.rsa.pub
+*.pem
+*.pub
+*.key
+
+# Logs and runtime data
+*.log
+*.mmdb
+*.ics
+*.pid
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.idea/
+.vscode/settings.json
+.vscode/*.code-workspace
+
+# Svelte/Vite
+dist/
+dist-ssr/
+*.log
+node_modules/
+.env
+.env.local
+.env.*.local
+.svelte-kit/
+.svelte-kit/**/*.tmp
+.svelte-kit/**/*.log
+.svelte-kit/build/
+.svelte-kit/cache/
+.svelte-kit/generated/
+.svelte-kit/output/
+.svelte-kit/stats/
+.svelte-kit/temp/
+.svelte-kit/types/
+build/
+public/build/
+vite.config.js.map
+tsconfig.tsbuildinfo
+
+# Svelte testing
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Storybook
+storybook-static/
+.out/
+
+# TypeScript
+*.tsbuildinfo
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Bun
+bun.lockb
+
+# Docker
+Dockerfile.*.local
+docker-compose.*.local
+.docker/

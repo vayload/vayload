@@ -1,0 +1,82 @@
+[app]
+env = "debug"
+working_dir = "D:/worklance/vayload"
+domain = ".vayload.me"
+secret_key = "xxx"
+api_key = "xxx"
+mode = "full"
+log_level = "info"
+
+[http]
+host = "0.0.0.0"
+port = 9000
+
+[grpc]
+enabled = true
+host = "0.0.0.0"
+port = 50051
+api_key = "xxx"
+
+[mcp]
+enabled = true
+
+[cors]
+origins = [
+  "https://app.vayload.me",
+  "http://localhost:3000",
+  "https://app.vayload.com",
+  "https://app.vayload.live",
+  "http://localhost:3004",
+  "https://admin.vayload.me"
+]
+
+[database]
+driver = "sqlite3"
+user = "root"
+password = "root"
+host = "localhost"
+port = 3306
+schema = "vayload"
+migrations_path = "${WORKING_DIR}/migrations"
+
+[rate_limit]
+window_ms = 900000
+max = 100
+
+[logging]
+level = "info"
+
+[security]
+jwt_public_key = "xxx"
+jwt_private_key = "xxx"
+jwt_expiration_time = 30
+jwt_refresh_expiration_days = 2
+
+[magic_link]
+secret_key = "xxx"
+expires_in_minutes = 10
+
+[oauth]
+redirect_base = "https://dash.vayload.me"
+
+[oauth.google]
+client_id = "xxx"
+client_secret = "xxx"
+
+[oauth.facebook]
+client_id = "xxx"
+client_secret = "xxx"
+
+[oauth.apple]
+client_id = "xxx"
+team_id = "xxx"
+key_id = "xxx"
+key = "xxx"
+
+[queue]
+host = "localhost"
+port = 9000
+api_key = "xxx"
+
+[plugins]
+registry_uri = "http://localhost:8080/api/v1"
