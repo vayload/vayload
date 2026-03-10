@@ -57,8 +57,13 @@ func (m *HashMap[K, V]) Size() int {
 
 func (m *HashMap[K, V]) Range(fn func(K, V) bool) {
 	m.mu.RLock()
-	defer m.mu.RUnlock()
+	copyData := make(map[K]V, len(m.data))
 	for k, v := range m.data {
+		copyData[k] = v
+	}
+	m.mu.RUnlock()
+
+	for k, v := range copyData {
 		if !fn(k, v) {
 			return
 		}

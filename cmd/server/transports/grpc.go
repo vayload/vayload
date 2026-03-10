@@ -73,4 +73,15 @@ func (t *GrpcTransport) IsListening() bool {
 	return t.isListening.Load()
 }
 
+func (t *GrpcTransport) OnServiceStarted(service vayload.ServiceStartedEvent) {
+	if exposer, ok := service.Service.(vayload.GrpcExposer); ok {
+		logger.I("Discovered gRPC services for service", logger.Fields{
+			"service": service.Service.Name(),
+		})
+
+		t.RegisterServices(exposer.GrpcServices(), "v1")
+	}
+}
+
 var _ vayload.GrpcTransport = (*GrpcTransport)(nil)
+var _ vayload.ServiceStartedListener = (*GrpcTransport)(nil)

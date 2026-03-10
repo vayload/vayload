@@ -50,6 +50,7 @@ type Config struct {
 
 type AppConfig struct {
 	Env        string  `toml:"env"`
+	Version    string  `toml:"version"`
 	WorkingDir string  `toml:"working_dir"`
 	Domain     string  `toml:"domain"`
 	SecretKey  string  `toml:"secret_key"`

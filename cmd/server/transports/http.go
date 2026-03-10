@@ -209,16 +209,21 @@ func (t *HttpTransport) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (t *HttpTransport) RegisterRoutes(routes []vayload.HttpRoute, version string) {
-	// Create a new group for the version
-	v1 := t.server.Group(fmt.Sprintf("/api/%s/_rest", version))
-
-	// Add each route to the group
-	for _, route := range routes {
-		v1.Add(string(route.Method()), route.Path(), func(c *fiber.Ctx) error {
-			return route.Handler()(httpi.NewHttpRequest(c), httpi.NewHttpResponse(c))
+func (t *HttpTransport) OnServiceStarted(e vayload.ServiceStartedEvent) {
+	if exposer, ok := e.Service.(vayload.HttpExposer); ok {
+		logger.I("Discovered HTTP routes for service", logger.Fields{
+			"service": e.Service.Name(),
 		})
+
+		t.RegisterRouteGroups(exposer.HttpRoutes(), "v1", e.Service.Name())
 	}
+}
+
+func (t *HttpTransport) RegisterRouteGroups(groups []vayload.HttpRoutesGroup, version string, service string) {
+	// Create a new group for the version if not exists
+	base := t.server.Group(fmt.Sprintf("/api/%s/_rest", version))
+
+	RegisterHttpRoutes(base, service, groups)
 }
 
 func (t *HttpTransport) Server() *fiber.App {
@@ -230,3 +235,94 @@ func (t *HttpTransport) IsListening() bool {
 }
 
 var _ vayload.HttpTransport = (*HttpTransport)(nil)
+var _ vayload.ServiceStartedListener = (*HttpTransport)(nil)
+
+func RegisterHttpRoutes(app fiber.Router, service string, handlers []vayload.HttpRoutesGroup) {
+	fmt.Println()
+	fmt.Println(cyan + "🚀 Discovering Http routes for service: " + service + reset)
+
+	for _, fh := range handlers {
+
+		publicGroup := app.Group("/public" + fh.Prefix)
+		privateGroup := app.Group(fh.Prefix)
+
+		// Global middleware
+		if len(fh.Middlewares) > 0 {
+			for _, mw := range fh.Middlewares {
+				privateGroup.Use(httpi.FiberWrap(mw))
+			}
+		}
+
+		for _, route := range fh.Routes {
+			path := strings.TrimPrefix(route.Path, "/")
+			fullPath := pathJoin(fh.Prefix, route.Path)
+
+			var handlers []fiber.Handler
+			var group fiber.Router
+
+			if route.Public {
+				group = publicGroup
+				fmt.Printf("PUBLIC   - %s %s\n", route.Method, fullPath)
+			} else {
+				group = privateGroup
+
+				for _, mw := range route.Middlewares {
+					handlers = append(handlers, httpi.FiberWrap(mw))
+				}
+			}
+
+			handlers = append(handlers, httpi.FiberWrap(route.Handler))
+
+			group.Add(string(route.Method), path, handlers...)
+
+			LogRegisteredRoute(string(route.Method), fullPath)
+		}
+	}
+
+	fmt.Println()
+}
+
+func pathJoin(parts ...string) string {
+	return "/" + strings.Trim(strings.Join(parts, "/"), "/")
+}
+
+func PrintRegisteredRoutes(app *fiber.App) {
+
+	fmt.Println()
+	fmt.Println(cyan + "📦 Registered routes:" + reset)
+
+	for _, route := range app.GetRoutes() {
+		methodColor := methodToColor(route.Method)
+		fmt.Printf("  %s%-6s%s %s\n", methodColor, route.Method, reset, route.Path)
+	}
+}
+
+func LogRegisteredRoute(method, path string) {
+
+	methodColor := methodToColor(method)
+
+	fmt.Printf("  %s%-6s%s %s\n", methodColor, method, reset, path)
+}
+
+func methodToColor(method string) string {
+
+	switch method {
+	case "GET":
+		return green
+	case "POST":
+		return yellow
+	case "PUT", "PATCH":
+		return cyan
+	case "DELETE":
+		return "\033[31m"
+	default:
+		return reset
+	}
+}
+
+const (
+	green  = "\033[32m"
+	yellow = "\033[33m"
+	cyan   = "\033[36m"
+	reset  = "\033[0m"
+)
