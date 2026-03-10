@@ -21,7 +21,7 @@ type UserLoggedInEvent struct {
 	Context *AuthContext
 }
 
-func (event *UserLoggedInEvent) Name() string {
+func (event UserLoggedInEvent) Name() string {
 	return "auth.UserLoggedIn"
 }
 
@@ -31,7 +31,7 @@ type UserCreatedEvent struct {
 	Code string
 }
 
-func (event *UserCreatedEvent) Name() string {
+func (event UserCreatedEvent) Name() string {
 	return "auth.UserCreated"
 }
 
@@ -40,7 +40,7 @@ type UserUpdatedEvent struct {
 	User *User
 }
 
-func (event *UserUpdatedEvent) Name() string {
+func (event UserUpdatedEvent) Name() string {
 	return "auth.UserUpdated"
 }
 
@@ -50,7 +50,7 @@ type UserUpdateCodeEvent struct {
 	Code string
 }
 
-func (event *UserUpdateCodeEvent) Name() string {
+func (event UserUpdateCodeEvent) Name() string {
 	return "auth.UserUpdateCode"
 }
 
@@ -61,7 +61,7 @@ type OtpCodeGeneratedEvent struct {
 	Channel string
 }
 
-func (event *OtpCodeGeneratedEvent) Name() string {
+func (event OtpCodeGeneratedEvent) Name() string {
 	return "auth.OtpCodeGenerated"
 }
 
@@ -73,7 +73,7 @@ type UserMagicLinkGeneratedEvent struct {
 	ExpiresIn time.Duration
 }
 
-func (event *UserMagicLinkGeneratedEvent) Name() string {
+func (event UserMagicLinkGeneratedEvent) Name() string {
 	return "auth.UserMagicLinkGenerated"
 }
 
@@ -82,7 +82,11 @@ type UserEmailVerifiedEvent struct {
 	User *User
 }
 
-func (event *UserPasswordRecoveryRequestedEvent) Name() string {
+func (event UserEmailVerifiedEvent) Name() string {
+	return "auth.UserEmailVerified"
+}
+
+func (event UserPasswordRecoveryRequestedEvent) Name() string {
 	return "auth.UserPasswordRecoveryRequested"
 }
 
@@ -92,7 +96,7 @@ type UserPasswordRecoveryRequestedEvent struct {
 	Token string
 }
 
-func (event *UserPasswordResetCompletedEvent) Name() string {
+func (event UserPasswordResetCompletedEvent) Name() string {
 	return "auth.UserPasswordResetCompleted"
 }
 
@@ -101,7 +105,7 @@ type UserPasswordResetCompletedEvent struct {
 	User *User
 }
 
-func (event *UserEmailChangeRequestedEvent) Name() string {
+func (event UserEmailChangeRequestedEvent) Name() string {
 	return "auth.UserEmailChangeRequested"
 }
 
@@ -113,7 +117,7 @@ type UserEmailChangeRequestedEvent struct {
 	NewEmail     string
 }
 
-func (event *UserEmailChangeConfirmedEvent) Name() string {
+func (event UserEmailChangeConfirmedEvent) Name() string {
 	return "auth.UserEmailChangeConfirmed"
 }
 

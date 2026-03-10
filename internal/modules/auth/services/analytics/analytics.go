@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: MIT
  *
- * Vayload - Auth/Services/Analytics
+ * Vayload - Container
  *
  * Copyright (c) 2026 Alex Zweiter
  */
@@ -9,6 +9,9 @@
 package analytics
 
 import (
+	"context"
+	"time"
+
 	"github.com/vayload/vayload/internal/modules/auth/domain"
 	"github.com/vayload/vayload/internal/shared/snowflake"
 )
@@ -25,34 +28,58 @@ func NewAnalyticsService(repository domain.AnalyticsRepository) *AnalyticsServic
 	}
 }
 
-func (s *AnalyticsService) GetKPIs(ctx interface{}) (*domain.KPIsResponse, error) {
-	return nil, nil
+// GetKPIs obtiene los KPIs globales
+func (s *AnalyticsService) GetKPIs(ctx context.Context) (*domain.KPIsResponse, error) {
+	return s.repository.GetKPIs(ctx)
 }
 
-func (s *AnalyticsService) GetWeeklyAnalytics(ctx interface{}) (*domain.WeeklyAnalyticsResponse, error) {
-	return nil, nil
+// GetWeeklyAnalytics obtiene la actividad semanal
+func (s *AnalyticsService) GetWeeklyAnalytics(ctx context.Context) (*domain.WeeklyAnalyticsResponse, error) {
+	return s.repository.GetWeeklyAnalytics(ctx)
 }
 
-func (s *AnalyticsService) GetCountryRanking(ctx interface{}) ([]domain.CountryCount, error) {
-	return nil, nil
+// GetCountryRanking obtiene el ranking de usuarios por país
+func (s *AnalyticsService) GetCountryRanking(ctx context.Context) ([]domain.CountryCount, error) {
+	return s.repository.GetCountryRanking(ctx)
 }
 
+// UserActivityInput input para obtener actividad de usuario
 type UserActivityInput struct {
 	UserID snowflake.ID
 	From   *string
 	To     *string
 }
 
-func (s *AnalyticsService) GetUserActivity(ctx interface{}, input UserActivityInput) (*domain.UserActivityResponse, error) {
-	return nil, nil
+// GetUserActivity obtiene la actividad de un usuario específico
+func (s *AnalyticsService) GetUserActivity(ctx context.Context, input UserActivityInput) (*domain.UserActivityResponse, error) {
+	filter := domain.AnalyticsFilter{}
+
+	if input.From != nil {
+		if t, err := time.Parse("2006-01-02", *input.From); err == nil {
+			filter.From = &t
+		}
+	}
+
+	if input.To != nil {
+		if t, err := time.Parse("2006-01-02", *input.To); err == nil {
+			// Agregar fin del día
+			t = t.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+			filter.To = &t
+		}
+	}
+
+	return s.repository.GetUserActivity(ctx, input.UserID, filter)
 }
 
-func (s *AnalyticsService) GetUserLogs(ctx interface{}, userID snowflake.ID) ([]domain.UserLogEntry, error) {
-	return nil, nil
+// GetUserLogs obtiene los logs de un usuario específico
+func (s *AnalyticsService) GetUserLogs(ctx context.Context, userID snowflake.ID) ([]domain.UserLogEntry, error) {
+	return s.repository.GetUserLogs(ctx, userID)
 }
 
-func (s *AnalyticsService) GetRecentUsers(ctx interface{}, limit int) ([]domain.RecentUser, error) {
-	return nil, nil
+// GetRecentUsers obtiene los últimos usuarios logueados
+func (s *AnalyticsService) GetRecentUsers(ctx context.Context, limit int) ([]domain.RecentUser, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	return s.repository.GetRecentUsers(ctx, limit)
 }
-
-var _ interface{} = (*AnalyticsService)(nil)

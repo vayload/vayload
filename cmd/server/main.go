@@ -43,13 +43,15 @@ func main() {
 }
 
 func run() error {
+	var startTime = time.Now()
+
 	cfg, err := config.GetConfig("config.toml")
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
 
 	logger.Init(logger.Config{
-		Level:      logger.ParseLevel(cfg.App.LogLevel),
+		Level:      cfg.App.LogLevel,
 		FilePath:   filepath.Join(cfg.App.WorkingDir, "logs", "app.log"),
 		MaxSize:    logMaxSize,
 		MaxBackups: logMaxBackups,
@@ -96,13 +98,15 @@ func run() error {
 
 	// ============================ START TRANSPORTS ==============================
 	// Start all active transports.
-	for _, srv := range active {
+	for _, _srv := range active {
 		// Capture loop variable for the goroutine.
-		srv := srv
+		srv := _srv
 		if err := srv.Serve(); err != nil {
 			return fmt.Errorf("serve: %w", err)
 		}
 	}
+
+	fmt.Printf("kernel started in %s\n", time.Since(startTime))
 
 	// ============================ WAIT FOR SHUTDOWN SIGNAL ==============================
 	<-appContext.Done()

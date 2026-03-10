@@ -25,22 +25,21 @@ const (
 
 // User represents the core entity in our domain.
 type User struct {
-	ID           snowflake.ID   `json:"id,string"`
-	Username     string         `json:"username"`
-	Email        string         `json:"email"`
-	Phone        *string        `json:"phone"`                // Optional phone number
-	Password     *string        `json:"-"`                    // Password is hashed, not returned in responses
-	Role         UserRole       `json:"role"`                 // User role (admin, patient, etc.)
-	LastName     *string        `json:"last_name"`            // Optional last name
-	Meta         map[string]any `json:"meta,omitempty"`       // For additional user metadata
-	ClientId     *int64         `json:"client_id,omitempty"`  // For policies and authorization relationships
-	ProfileId    *int64         `json:"profile_id,omitempty"` // For user profile relationships (depends of clientId)
-	CountryID    *snowflake.ID  `json:"country_id,omitempty"` // For user-country relationship
-	AuthType     string         `json:"-"`                    // The type of authentication method (e.g., password, oauth, google, etc.)
-	AvatarURL    *string        `json:"avatar_url,omitempty"` // Optional avatar URL
-	DigevoCoreId *int64         `json:"-"`                    // Digevo core ID for VAS users
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
+	ID        snowflake.ID   `json:"id,string"`
+	Username  string         `json:"username"`
+	Email     string         `json:"email"`
+	Phone     *string        `json:"phone"`                // Optional phone number
+	Password  *string        `json:"-"`                    // Password is hashed, not returned in responses
+	Role      UserRole       `json:"role"`                 // User role (admin, patient, etc.)
+	LastName  *string        `json:"last_name"`            // Optional last name
+	Meta      map[string]any `json:"meta,omitempty"`       // For additional user metadata
+	ClientId  *int64         `json:"client_id,omitempty"`  // For policies and authorization relationships
+	ProfileId *int64         `json:"profile_id,omitempty"` // For user profile relationships (depends of clientId)
+	CountryID *snowflake.ID  `json:"country_id,omitempty"` // For user-country relationship
+	AuthType  string         `json:"-"`                    // The type of authentication method (e.g., password, oauth, google, etc.)
+	AvatarURL *string        `json:"avatar_url,omitempty"` // Optional avatar URL
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 
 	// Account status fields (not exposed in JSON)
 	EmailVerified bool       `json:"-"` // Email verification status

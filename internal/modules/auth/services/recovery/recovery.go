@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: MIT
  *
- * Vayload - Auth/Services/Recovery
+ * Vayload - Container
  *
  * Copyright (c) 2026 Alex Zweiter
  */
@@ -9,6 +9,8 @@
 package recovery
 
 import (
+	"context"
+
 	"github.com/vayload/vayload/internal/modules/auth/domain"
 )
 
@@ -34,12 +36,41 @@ func NewRecoveryService(repository domain.AuthRepository, strategies *RecoverySt
 	}
 }
 
-func (service *RecoveryService) RequestPasswordRecovery(ctx interface{}, email string) error {
+// Initiates the password recovery process for a user identified by their email.
+func (service *RecoveryService) RequestPasswordRecovery(ctx context.Context, email string) error {
+	user, err := service.repository.FindByIdentifier(ctx, email, string(domain.IdentifierTypeEmail))
+	if err != nil || user == nil {
+		return domain.ErrUserNotFound(err)
+	}
+
+	token := service.randomizer.GenerateRandomString(32, true)
+	if err := service.repository.SaveRecoveryToken(ctx, user.ID, token); err != nil {
+		return err
+	}
+
+	go service.EventBus.Publish(ctx, domain.UserPasswordRecoveryRequestedEvent{
+		User:  user,
+		Token: token,
+	})
+
 	return nil
 }
 
-func (service *RecoveryService) ResetPassword(ctx interface{}, token string, newPassword string) error {
+// Resets the password for a user using a recovery token.
+func (service *RecoveryService) ResetPassword(ctx context.Context, token string, newPassword string) error {
+	user, err := service.repository.FindUserByRecoveryToken(ctx, token)
+	if err != nil || user == nil {
+		return domain.ErrUserNotFound(err)
+	}
+
+	hashed := service.strategies.Password.HashPassword(newPassword)
+	if err := service.repository.ResetPasswordWithRecoveryToken(ctx, token, hashed); err != nil {
+		return err
+	}
+
+	go service.EventBus.Publish(ctx, domain.UserPasswordResetCompletedEvent{
+		User: user,
+	})
+
 	return nil
 }
-
-var _ interface{} = (*RecoveryService)(nil)

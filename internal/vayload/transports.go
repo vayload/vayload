@@ -60,6 +60,7 @@ type HttpRoute struct {
 
 type HttpRoutesGroup struct {
 	Prefix      string
+	Public      bool
 	Middlewares []HttpHandler
 	Routes      []HttpRoute
 }

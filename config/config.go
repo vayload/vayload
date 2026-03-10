@@ -16,6 +16,7 @@ import (
 	"sync"
 
 	"github.com/pelletier/go-toml/v2"
+	"github.com/vayload/vayload/pkg/logger"
 )
 
 type AppMode string
@@ -49,14 +50,19 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Env        string  `toml:"env"`
-	Version    string  `toml:"version"`
-	WorkingDir string  `toml:"working_dir"`
-	Domain     string  `toml:"domain"`
-	SecretKey  string  `toml:"secret_key"`
-	APIKey     string  `toml:"api_key"`
-	Mode       AppMode `toml:"mode"`
-	LogLevel   string  `toml:"log_level"`
+	Env        string       `toml:"env"`
+	Version    string       `toml:"version"`
+	WorkingDir string       `toml:"working_dir"`
+	Domain     string       `toml:"domain"`
+	SecretKey  string       `toml:"secret_key"`
+	APIKey     string       `toml:"api_key"`
+	Mode       AppMode      `toml:"mode"`
+	lLogLevel  string       `toml:"log_level"`
+	LogLevel   logger.Level `toml:"-"`
+}
+
+func (a *AppConfig) IsDebug() bool {
+	return a.LogLevel <= logger.InfoLevel
 }
 
 type CorsConfig struct {
@@ -167,6 +173,8 @@ func LoadConfig(path string) (*Config, error) {
 		}
 		cfg.Security.JwtPrivateKey = keyBytes
 	}
+
+	cfg.App.LogLevel = logger.ParseLevel(cfg.App.lLogLevel)
 
 	return &cfg, nil
 }

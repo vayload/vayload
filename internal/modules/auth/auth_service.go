@@ -23,7 +23,7 @@ import (
 	"github.com/vayload/vayload/internal/modules/auth/services/login"
 	"github.com/vayload/vayload/internal/modules/auth/services/recovery"
 	"github.com/vayload/vayload/internal/modules/auth/services/registration"
-	"github.com/vayload/vayload/internal/modules/auth/transport/http"
+	auth_http "github.com/vayload/vayload/internal/modules/auth/transport/http"
 	"github.com/vayload/vayload/internal/modules/database"
 	"github.com/vayload/vayload/internal/modules/database/connection"
 	"github.com/vayload/vayload/internal/shared/security"
@@ -46,7 +46,7 @@ type AuthService struct {
 
 	config      *config.Config
 	db          connection.DatabaseConnection
-	httpHandler http.AuthHttpHandler
+	httpHandler *auth_http.AuthHttpHandler
 }
 
 func NewAuthService(cfg *config.Config) *AuthService {
@@ -113,14 +113,14 @@ func (s *AuthService) Bootstrap(ctx context.Context, args map[string]any, reply 
 	container.SetInstance(RecoveryServiceKey, recoveryService)
 	container.SetInstance(AnalyticsServiceKey, analyticsService)
 
-	// s.httpHandler = http.NewHttpHandler(s.config, container, http.HttpServices{
-	// 	LoginService:     loginService,
-	// 	RegisterService:  registerService,
-	// 	RecoveryService:  recoveryService,
-	// 	AnalyticsService: analyticsService,
-	// })
+	s.httpHandler = auth_http.NewHttpHandler(s.config, container, auth_http.HttpServices{
+		LoginService:     loginService,
+		RegisterService:  registerService,
+		RecoveryService:  recoveryService,
+		AnalyticsService: analyticsService,
+	})
 
-	authListeners := listeners.NewAuthListeners(db, s.config)
+	authListeners := listeners.NewEventListeners(db, s.config)
 	authListeners.ListenOf(eventBus)
 
 	_ = domain.ErrContext
@@ -132,8 +132,12 @@ func (s *AuthService) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (s *AuthService) HttpHandler() http.AuthHttpHandler {
-	return s.httpHandler
+func (s *AuthService) HttpRoutes() []vayload.HttpRoutesGroup {
+	if s.httpHandler == nil {
+		return []vayload.HttpRoutesGroup{}
+	}
+
+	return s.httpHandler.HttpRoutes()
 }
 
 var _ vayload.Service = (*AuthService)(nil)

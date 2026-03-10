@@ -8,13 +8,6 @@
 
 package domain
 
-import (
-	"context"
-	"time"
-
-	"github.com/vayload/vayload/internal/shared/snowflake"
-)
-
 // =================================== password strategy ===================================
 type PasswordStrategy interface {
 	HashPassword(password string) string
@@ -23,27 +16,6 @@ type PasswordStrategy interface {
 }
 
 const PasswordStrategyType = "password"
-
-// =================================== magic link strategy ===================================
-
-// For this strategy use a encrypted payload in the token
-type MagicLinkStrategy interface {
-	// Sign generates a magic link token.
-	Sign(payload *MagicLinkPayload) (string, error)
-
-	// Verify checks the validity of a magic link token.
-	Verify(token string) (*MagicLinkPayload, error)
-
-	// GetExpirationTime returns the expiration time of the magic link token.
-	GetExpirationTime() time.Duration
-}
-
-type MagicLinkPayload struct {
-	Redirect       string `json:"r"`            // URL to redirect after login
-	UserIdentifier string `json:"ui"`           // Email or phone
-	IdentifierType string `json:"it"`           // e.g. "email", "phone"
-	Meta           any    `json:"mt,omitempty"` // Additional metadata
-}
 
 // =================================== otp strategy ===================================
 type OtpStrategy interface {
@@ -104,67 +76,4 @@ type OAuthUser struct {
 type OAuth2State struct {
 	Origin string `json:"origin"`
 	Nonce  string `json:"nonce"`
-}
-
-// =================================== telco strategy ===================================
-type TelcoAuthStrategy interface {
-	Name() string
-	GetCustody(ctx context.Context, code string, productId int) (*TelcoCustody, error)
-
-	GetClientById(ctx context.Context, clientId int) (*TelcoClientUser, error)
-	GetClientByPhone(ctx context.Context, phone string) (*TelcoClientUser, error)
-	GetStatus(ctx context.Context, id int, productId int) (*TelcoStatus, error)
-	GetUserById(ctx context.Context, userId int, productId int) (*TelcoFremiumUser, error)
-	SetProfileTo(ctx context.Context, clientId int, productId int, profileId int) (*TelcoFremiumUser, error)
-}
-
-type TelcoClientProfile struct {
-	Email          string       `json:"email"`
-	Phone          string       `json:"phone"`
-	Name           string       `json:"name"`
-	ProfileId      int64        `json:"profile_id"`
-	CountryId      snowflake.ID `json:"country_id"`
-	VasProvider    string       `json:"vas_provider"`
-	SubscriptionId string       `json:"subscription_id"`
-	DigevoCoreId   int64        `json:"digevo_core_id"`
-	IsFree         bool         `json:"is_free"`
-}
-
-type TelcoCustody struct {
-	ProfileId string `json:"profile_id"`
-	ClientId  int64  `json:"client_id"`
-	Product   string `json:"product"`
-	IdList    int    `json:"idlist"`
-	Origin    string `json:"origin"`
-}
-
-type TelcoStatus struct {
-	Status bool `json:"status"`
-}
-
-type TelcoClientUser struct {
-	ClientId         int64  `json:"client_id"`
-	Phone            string `json:"phone"`
-	OperatorId       int    `json:"operator_id"`
-	User             string `json:"user"`
-	Email            string `json:"email"`
-	Pass             string `json:"pass"`
-	UserIdentifyData string `json:"user_identify_data"`
-}
-
-type TelcoLocation struct {
-	CountryID *snowflake.ID `json:"country_id"`
-	IDList    int64         `json:"idlists"`
-}
-
-type TelcoFremiumProfile struct {
-	ProfileId int64  `json:"idProfile"`
-	Paid      bool   `json:"paid"`
-	Country   string `json:"country"`
-	TagName   string `json:"tagName"`
-}
-
-type TelcoFremiumUser struct {
-	SubscriptionID string              `json:"idSubscription"`
-	Profile        TelcoFremiumProfile `json:"profile"`
 }

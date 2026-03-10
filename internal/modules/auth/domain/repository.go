@@ -43,10 +43,6 @@ type AuthRepository interface {
 	ApplyEmailChange(ctx context.Context, userId snowflake.ID) error
 
 	FindCountryOtpProviders(ctx context.Context, countryId snowflake.ID) (*OtpProvider, error)
-
-	// Telco
-	GetTelcoProfiles(ctx context.Context, telcoId string, countryId snowflake.ID) ([]int64, error)
-	GetTelcoLocation(ctx context.Context, productName string, countryCode string) (*TelcoLocation, error)
 }
 
 type AuthLogRepository interface {

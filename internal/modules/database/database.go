@@ -79,21 +79,4 @@ func (s *DatabaseService) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (s *DatabaseService) HttpRoutes() []vayload.HttpRoutesGroup {
-	return []vayload.HttpRoutesGroup{
-		{
-			Prefix: "/database",
-			Routes: []vayload.HttpRoute{
-				{
-					Path:   "/files/upload",
-					Method: vayload.HttpPost,
-					Handler: func(req vayload.HttpRequest, res vayload.HttpResponse) error {
-						return res.Send([]byte("Hello "))
-					},
-				},
-			},
-		},
-	}
-}
-
 var _ vayload.Service = (*DatabaseService)(nil)

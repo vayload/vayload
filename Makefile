@@ -9,7 +9,7 @@ BIN_DIR=./bin
 DIST_DIR=./dist
 RELEASE_DIR=./release
 INSTALL_DIR=$(HOME)/bin
-CMD_SERVER=./cmd/http
+CMD_SERVER=./cmd/server
 CMD_CLI=./cmd/cli
 
 ## Platform detection
@@ -53,7 +53,7 @@ ifeq ($(GOOS),windows)
 endif
 
 ## CGO settings for static builds
-CGO_ENABLED ?= 0
+CGO_ENABLED ?= 1
 ifeq ($(GOOS),darwin)
 	CGO_ENABLED = 1
 endif

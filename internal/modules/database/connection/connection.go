@@ -53,6 +53,7 @@ type QueryBuilder interface {
 
 	// where
 	Where(column string, operator string, value any) QueryBuilder
+	Wheres(filters map[string]any) QueryBuilder
 	OrWhere(column string, operator string, value any) QueryBuilder
 	WhereIn(column string, values ...any) QueryBuilder
 	WhereNotIn(column string, values ...any) QueryBuilder
@@ -62,6 +63,7 @@ type QueryBuilder interface {
 	// mutation
 	Insert(values map[string]any) QueryBuilder
 	Update(values map[string]any) QueryBuilder
+	Upsert(values map[string]any, onConflict []string) QueryBuilder
 	Delete() QueryBuilder
 
 	// group

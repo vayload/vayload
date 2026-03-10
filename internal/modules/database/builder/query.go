@@ -30,6 +30,8 @@ type QueryBuilder struct {
 	// For mutations
 	insertValues map[string]any
 	updateValues map[string]any
+	upsertValues map[string]any
+	onConflict   []string
 }
 
 type joinClause struct {
@@ -63,6 +65,7 @@ const (
 	StmtInsert
 	StmtUpdate
 	StmtDelete
+	StmtUpsert
 )
 
 func NewQueryBuilder(conn connection.DatabaseConnection, table string, driver connection.DatabaseDriver) connection.QueryBuilder {
@@ -142,6 +145,18 @@ func (q *QueryBuilder) Where(column string, operator string, value any) connecti
 	return q
 }
 
+func (q *QueryBuilder) Wheres(filters map[string]any) connection.QueryBuilder {
+	for column, value := range filters {
+		q.where = append(q.where, whereClause{
+			column:   column,
+			operator: "=",
+			value:    value,
+			isOr:     false,
+		})
+	}
+	return q
+}
+
 func (q *QueryBuilder) OrWhere(column string, operator string, value any) connection.QueryBuilder {
 	q.orWhere = append(q.orWhere, whereClause{
 		column:   column,
@@ -214,6 +229,13 @@ func (q *QueryBuilder) Insert(values map[string]any) connection.QueryBuilder {
 func (q *QueryBuilder) Update(values map[string]any) connection.QueryBuilder {
 	q.stmtType = StmtUpdate
 	q.updateValues = values
+	return q
+}
+
+func (q *QueryBuilder) Upsert(values map[string]any, onConflict []string) connection.QueryBuilder {
+	q.stmtType = StmtUpsert
+	q.upsertValues = values
+	q.onConflict = onConflict
 	return q
 }
 
@@ -317,6 +339,8 @@ func (q *QueryBuilder) ToSql() (string, []any) {
 		return q.buildUpdate()
 	case StmtDelete:
 		return q.buildDelete()
+	case StmtUpsert:
+		return q.buildUpsert()
 	default:
 		return q.buildSelect()
 	}
@@ -462,6 +486,33 @@ func (q *QueryBuilder) buildUpdate() (string, []any) {
 		query.WriteString(adjustedWhere)
 		args = append(args, whereArgs...)
 	}
+
+	return query.String(), args
+}
+
+func (q *QueryBuilder) buildUpsert() (string, []any) {
+	var query strings.Builder
+	args := make([]any, 0)
+
+	if len(q.upsertValues) == 0 {
+		return "", nil
+	}
+
+	columns := make([]string, 0, len(q.upsertValues))
+	placeholders := make([]string, 0, len(q.upsertValues))
+
+	i := 1
+	for column, value := range q.upsertValues {
+		columns = append(columns, column)
+		placeholders = append(placeholders, q.getPlaceholder(i))
+		args = append(args, value)
+		i++
+	}
+
+	query.WriteString(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
+		q.table,
+		strings.Join(columns, ", "),
+		strings.Join(placeholders, ", ")))
 
 	return query.String(), args
 }

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -41,6 +42,9 @@ type HttpTransport struct {
 	server      *fiber.App
 	isListening atomic.Bool
 
+	v1          fiber.Router // v1 router for API endpoints
+	v1_internal fiber.Router // rest for use admin routes
+
 	config *cfg.Config
 }
 
@@ -56,7 +60,10 @@ func CreateHttpServer(config *cfg.Config) *HttpTransport {
 		StreamRequestBody:       true,
 	})
 
-	server.Use(httplogger.New())
+	if config.App.IsDebug() {
+		server.Use(httplogger.New())
+	}
+
 	server.Use(cors.New(cors.Config{
 		AllowOrigins:     strings.Join(config.Cors.Origins, ","),
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
@@ -80,8 +87,77 @@ func CreateHttpServer(config *cfg.Config) *HttpTransport {
 	}))
 	server.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
+		StackTraceHandler: func(c *fiber.Ctx, e any) {
+			err := fmt.Sprintf("panic: %v\n\n%s\n", e, debug.Stack())
+			_, _ = os.Stderr.WriteString(err) //nolint:errcheck
+			logger.E(errors.New(err), logger.Fields{"context": "panic-recover"})
+		},
 	}))
-	server.Use(limiter.New(limiter.Config{
+
+	server.Add("GET", "/health", func(c *fiber.Ctx) error {
+		uptime := time.Since(startTime).Truncate(time.Second).String()
+
+		if strings.Contains(c.Get("Accept"), "text/html") {
+			c.Set("Content-Type", "text/html")
+
+			return c.Status(http.StatusOK).SendString(fmt.Sprintf(`
+                <!DOCTYPE html>
+                    <html>
+                    <head>
+                    <meta charset="utf-8">
+                    <title>Vayload Status</title>
+                    <style>
+                    body {
+                        background:#0b0b0b;
+                        color:#eaeaea;
+                        font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        height:100vh;
+                        margin:0;
+                    }
+
+                    .box {
+                        text-align:center;
+                    }
+
+                    .status {
+                        font-size:28px;
+                        font-weight:600;
+                        color:#ff7a18;
+                        margin-bottom:8px;
+                    }
+
+                    .meta {
+                        font-size:13px;
+                        color:#777;
+                    }
+                    </style>
+                    </head>
+                    <body>
+
+                    <div class="box">
+                        <div class="status">Vayload is healthy</div>
+                        <div class="meta">uptime %s</div>
+                    </div>
+
+                    </body>
+                </html>
+            `, uptime),
+			)
+		}
+
+		return c.Status(http.StatusOK).JSON(fiber.Map{
+			"status": "healthy",
+			"uptime": uptime,
+		})
+	})
+
+	v1 := server.Group("/api/v1")
+	v1_rest := server.Group("/api/v1/_rest")
+
+	v1_rest.Use(limiter.New(limiter.Config{
 		Next: func(c *fiber.Ctx) bool {
 			return c.IP() == "127.0.0.1"
 		},
@@ -104,67 +180,13 @@ func CreateHttpServer(config *cfg.Config) *HttpTransport {
 		},
 	}))
 
-	server.Add("GET", "/api/_rest/health", func(c *fiber.Ctx) error {
-		uptime := time.Since(startTime).Truncate(time.Second).String()
-
-		if strings.Contains(c.Get("Accept"), "text/html") {
-			c.Set("Content-Type", "text/html")
-
-			return c.Status(http.StatusOK).SendString(fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Vayload Status</title>
-<style>
-body {
-	background:#0b0b0b;
-	color:#eaeaea;
-	font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-	display:flex;
-	align-items:center;
-	justify-content:center;
-	height:100vh;
-	margin:0;
-}
-
-.box {
-	text-align:center;
-}
-
-.status {
-	font-size:28px;
-	font-weight:600;
-	color:#ff7a18;
-	margin-bottom:8px;
-}
-
-.meta {
-	font-size:13px;
-	color:#777;
-}
-</style>
-</head>
-<body>
-
-<div class="box">
-	<div class="status">Vayload is healthy</div>
-	<div class="meta">uptime %s</div>
-</div>
-
-</body>
-</html>
-`, uptime))
-		}
-
-		return c.Status(http.StatusOK).JSON(fiber.Map{
-			"status": "healthy",
-			"uptime": uptime,
-		})
-	})
-
 	// If app mode is full, serve static files and SPA Admin
 	if config.App.Mode == cfg.AppModeFull {
+		index := filepath.Join(config.WorkDir, "public/build/index.html")
+
+		_, err := os.Stat(index)
+		indexNotExists := os.IsNotExist(err)
+
 		server.Static("/", filepath.Join(config.WorkDir, "public/build"), fiber.Static{
 			Compress: true,
 		})
@@ -173,9 +195,7 @@ body {
 				return fiber.ErrNotFound
 			}
 
-			index := filepath.Join(config.WorkDir, "public/build/index.html")
-			// check if file exists
-			if _, err := os.Stat(index); os.IsNotExist(err) {
+			if indexNotExists {
 				return fiber.ErrNotFound
 			}
 
@@ -183,7 +203,12 @@ body {
 		})
 	}
 
-	return &HttpTransport{server: server, config: config}
+	return &HttpTransport{
+		server:      server,
+		config:      config,
+		v1:          v1,
+		v1_internal: v1_rest,
+	}
 }
 
 func (t *HttpTransport) Serve() error {
@@ -215,15 +240,12 @@ func (t *HttpTransport) OnServiceStarted(e vayload.ServiceStartedEvent) {
 			"service": e.Service.Name(),
 		})
 
-		t.RegisterRouteGroups(exposer.HttpRoutes(), "v1", e.Service.Name())
+		t.RegisterRouteGroups(exposer.HttpRoutes(), e.Service.Name())
 	}
 }
 
-func (t *HttpTransport) RegisterRouteGroups(groups []vayload.HttpRoutesGroup, version string, service string) {
-	// Create a new group for the version if not exists
-	base := t.server.Group(fmt.Sprintf("/api/%s/_rest", version))
-
-	RegisterHttpRoutes(base, service, groups)
+func (t *HttpTransport) RegisterRouteGroups(groups []vayload.HttpRoutesGroup, service string) {
+	RegisterHttpRoutes(t.v1_internal, t.v1, service, groups)
 }
 
 func (t *HttpTransport) Server() *fiber.App {
@@ -237,19 +259,23 @@ func (t *HttpTransport) IsListening() bool {
 var _ vayload.HttpTransport = (*HttpTransport)(nil)
 var _ vayload.ServiceStartedListener = (*HttpTransport)(nil)
 
-func RegisterHttpRoutes(app fiber.Router, service string, handlers []vayload.HttpRoutesGroup) {
+func RegisterHttpRoutes(privateRoute fiber.Router, publicRoute fiber.Router, service string, handlers []vayload.HttpRoutesGroup) {
 	fmt.Println()
 	fmt.Println(cyan + "🚀 Discovering Http routes for service: " + service + reset)
 
 	for _, fh := range handlers {
+		publicGroup := publicRoute.Group(fh.Prefix)
+		privateGroup := privateRoute.Group(fh.Prefix)
 
-		publicGroup := app.Group("/public" + fh.Prefix)
-		privateGroup := app.Group(fh.Prefix)
-
+		isPublic := fh.Public
 		// Global middleware
 		if len(fh.Middlewares) > 0 {
 			for _, mw := range fh.Middlewares {
-				privateGroup.Use(httpi.FiberWrap(mw))
+				if !isPublic {
+					privateGroup.Use(httpi.FiberWrap(mw))
+				} else {
+					publicGroup.Use(httpi.FiberWrap(mw))
+				}
 			}
 		}
 
@@ -257,15 +283,12 @@ func RegisterHttpRoutes(app fiber.Router, service string, handlers []vayload.Htt
 			path := strings.TrimPrefix(route.Path, "/")
 			fullPath := pathJoin(fh.Prefix, route.Path)
 
-			var handlers []fiber.Handler
-			var group fiber.Router
+			handlers := make([]fiber.Handler, 0, len(route.Middlewares)+1)
+			group := publicGroup
 
-			if route.Public {
-				group = publicGroup
-				fmt.Printf("PUBLIC   - %s %s\n", route.Method, fullPath)
-			} else {
+			// If current route is not public, append middlewares to handlers list
+			if !route.Public || !isPublic {
 				group = privateGroup
-
 				for _, mw := range route.Middlewares {
 					handlers = append(handlers, httpi.FiberWrap(mw))
 				}
@@ -275,19 +298,22 @@ func RegisterHttpRoutes(app fiber.Router, service string, handlers []vayload.Htt
 
 			group.Add(string(route.Method), path, handlers...)
 
-			LogRegisteredRoute(string(route.Method), fullPath)
+			LogRegisteredRoute(string(route.Method), fullPath, route.Public)
 		}
 	}
 
 	fmt.Println()
 }
 
-func pathJoin(parts ...string) string {
-	return "/" + strings.Trim(strings.Join(parts, "/"), "/")
+func pathJoin(prefix, path string) string {
+	if prefix == "" {
+		return "/" + strings.TrimPrefix(path, "/")
+	}
+
+	return strings.TrimSuffix(prefix, "/") + "/" + strings.TrimPrefix(path, "/")
 }
 
 func PrintRegisteredRoutes(app *fiber.App) {
-
 	fmt.Println()
 	fmt.Println(cyan + "📦 Registered routes:" + reset)
 
@@ -297,15 +323,13 @@ func PrintRegisteredRoutes(app *fiber.App) {
 	}
 }
 
-func LogRegisteredRoute(method, path string) {
-
+func LogRegisteredRoute(method, path string, isPublic bool) {
 	methodColor := methodToColor(method)
 
 	fmt.Printf("  %s%-6s%s %s\n", methodColor, method, reset, path)
 }
 
 func methodToColor(method string) string {
-
 	switch method {
 	case "GET":
 		return green

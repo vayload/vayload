@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: MIT
  *
- * Vayload - Auth/Services/Authorization
+ * Vayload - Container
  *
  * Copyright (c) 2026 Alex Zweiter
  */
@@ -17,7 +17,9 @@ import (
 	"github.com/vayload/vayload/internal/shared/snowflake"
 )
 
-const AUTHORIZATION_SERVICE_KEY = "authorization_service"
+const (
+	AUTHORIZATION_SERVICE_KEY = "authorization_service"
+)
 
 type AuthorizationService interface {
 	With(userId snowflake.ID, clientId int64) AuthorizationService
@@ -42,6 +44,7 @@ type authorizationService struct {
 	profiles map[string]int64
 	mu       sync.RWMutex
 
+	// Seeds
 	UserId   snowflake.ID
 	ClientId int64
 }
@@ -73,8 +76,10 @@ func (service *authorizationService) Get() (*domain.UserPolicy, error) {
 }
 
 func (service *authorizationService) GetAuthorized(userId snowflake.ID, clientId int64) (*domain.UserPolicy, error) {
+	// Binding is relationship between user and client
 	binding := &domain.AuthorizationBindingOptional{}
 
+	// When client id is zero get authorization binding
 	if clientId == 0 {
 		var err error
 		binding, err = service.repository.GetAuthorizationBinding(strconv.Itoa(int(userId)))
@@ -183,8 +188,5 @@ func (service *authorizationService) GetPremiumProfileId() int64 {
 func (service *authorizationService) SetProfiles(profiles map[string]int64) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
-
 	service.profiles = profiles
 }
-
-var _ AuthorizationService = (*authorizationService)(nil)
