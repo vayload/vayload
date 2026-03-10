@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: MIT
  *
- * Vayload - Container
+ * Vayload - Crypto
  *
  * Copyright (c) 2026 Alex Zweiter
  */

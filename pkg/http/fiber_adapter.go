@@ -11,7 +11,6 @@ package httpi
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"strings"
@@ -23,54 +22,6 @@ import (
 	"github.com/vayload/vayload/internal/vayload"
 	"github.com/vayload/vayload/pkg/logger"
 )
-
-type FiberHandlers struct {
-	Middleware []vayload.HttpHandler
-	Routes     []HttpRoute
-	Prefix     string
-}
-
-func (fh *FiberHandlers) RegisterRoutes(app fiber.Router) {
-	publicGroup := app.Group("/public" + fh.Prefix) // without middlewares
-	privateGroup := app.Group(fh.Prefix)            // with middlewares
-
-	if len(fh.Middleware) > 0 {
-		middlewares := []any{}
-		for _, middleware := range fh.Middleware {
-			middlewares = append(middlewares, FiberWrap(middleware))
-		}
-
-		privateGroup.Use(middlewares...)
-	}
-
-	fmt.Println(cyan + "📦 New routes registered:" + reset)
-	for _, route := range fh.Routes {
-		path := strings.TrimPrefix(route.Path, "/")
-
-		fullPath := fmt.Sprintf("%s%s", fh.Prefix, route.Path)
-		fullPath = strings.Trim(fullPath, "/")
-
-		handlers := []fiber.Handler{}
-		var group fiber.Router
-		if route.Public {
-			group = publicGroup
-			fmt.Printf("PUBLIC   - %s %s\n", route.Method, fullPath)
-		} else {
-			group = privateGroup
-			if len(route.Middleware) > 0 {
-				for _, mw := range route.Middleware {
-					handlers = append(handlers, FiberWrap(mw))
-				}
-			}
-		}
-
-		handlers = append(handlers, FiberWrap(route.Handler))
-		group.Add(string(route.Method), path, handlers...)
-
-		LogRegisteredRoute(string(route.Method), fullPath)
-	}
-	fmt.Println("")
-}
 
 type httpRequest struct {
 	Ctx *fiber.Ctx
@@ -332,38 +283,5 @@ func FiberWrap(handler vayload.HttpHandler) fiber.Handler {
 		}
 
 		return nil
-	}
-}
-
-// ANSI colores
-const (
-	green  = "\033[32m"
-	yellow = "\033[33m"
-	cyan   = "\033[36m"
-	reset  = "\033[0m"
-)
-
-// PrintRegisteredRoutes imprime las rutas registradas con colores
-func PrintRegisteredRoutes(app *fiber.App) {
-	fmt.Println(cyan + "📦 Rutas registradas:" + reset)
-	for _, route := range app.GetRoutes() {
-		methodColor := methodToColor(route.Method)
-		fmt.Printf("  %s%-6s%s %s\n", methodColor, route.Method, reset, route.Path)
-	}
-}
-
-func LogRegisteredRoute(method, path string) {
-	methodColor := methodToColor(method)
-	fmt.Printf("  %s%-6s%s %s\n", methodColor, method, reset, path)
-}
-
-func methodToColor(method string) string {
-	switch method {
-	case "GET":
-		return green
-	case "POST":
-		return yellow
-	default:
-		return cyan
 	}
 }

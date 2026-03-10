@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: MIT
  *
- * Vayload - Container
+ * Vayload - Collect
  *
  * Copyright (c) 2026 Alex Zweiter
  */
@@ -41,12 +41,9 @@ func Partition[T any](s []T, predicate func(T) bool) ([]T, []T) {
 
 // Map applies a function to each element of the slice and returns a new slice with the results
 func Map[T any, R any](s []T, mapper func(T, int) R) []R {
-	if len(s) == 0 {
-		return []R{}
-	}
-	result := make([]R, 0, len(s))
+	result := make([]R, len(s))
 	for i, v := range s {
-		result = append(result, mapper(v, i))
+		result[i] = mapper(v, i)
 	}
 	return result
 }
@@ -144,19 +141,28 @@ func Chunk[T any](s []T, size int) [][]T {
 
 // Flatten flattens a slice of slices into a single slice
 func Flatten[T any](s [][]T) []T {
-	var result []T
+	total := 0
+	for _, inner := range s {
+		total += len(inner)
+	}
+
+	result := make([]T, 0, total)
+
 	for _, inner := range s {
 		result = append(result, inner...)
 	}
+
 	return result
 }
 
 // FlatMap maps and flattens in one operation
 func FlatMap[T any, R any](s []T, mapper func(T) []R) []R {
-	var result []R
+	result := make([]R, 0, len(s))
+
 	for _, v := range s {
 		result = append(result, mapper(v)...)
 	}
+
 	return result
 }
 
@@ -215,11 +221,13 @@ func SkipWhile[T any](s []T, predicate func(T) bool) []T {
 
 // GroupBy groups elements by a key function
 func GroupBy[T any, K comparable](s []T, keyFunc func(T) K) map[K][]T {
-	result := make(map[K][]T)
+	result := make(map[K][]T, len(s))
+
 	for _, v := range s {
 		key := keyFunc(v)
 		result[key] = append(result[key], v)
 	}
+
 	return result
 }
 
@@ -342,12 +350,14 @@ func Difference[T comparable](s1, s2 []T) []T {
 
 // Zip combines two slices into a slice of pairs
 func Zip[T, U any](s1 []T, s2 []U) [][2]any {
-	minLen := min(len(s2), len(s1))
+	minLen := min(len(s1), len(s2))
 
 	result := make([][2]any, minLen)
+
 	for i := range minLen {
 		result[i] = [2]any{s1[i], s2[i]}
 	}
+
 	return result
 }
 

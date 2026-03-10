@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/vayload/vayload/internal/services/auth/domain"
+	"github.com/vayload/vayload/internal/modules/auth/domain"
 	"github.com/vayload/vayload/internal/shared/snowflake"
 	"github.com/vayload/vayload/pkg/logger"
 )
