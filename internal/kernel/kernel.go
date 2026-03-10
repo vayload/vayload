@@ -223,45 +223,100 @@ func (k *consoleKernel) Container() vayload.Container {
 	return k.registry
 }
 
-// HttpKernel
-type httpRoute struct {
-	path        string
-	method      vayload.HttpMethod
-	handler     vayload.HttpHandler
-	middlewares []vayload.HttpHandler
-	permission  string
-	public      bool
+type kernel struct {
+	name     string
+	registry vayload.Container
+	events   vayload.EventBus
+	services vayload.ServiceManager
+
+	*KernelLifecycleDispatcher
 }
 
-func NewHttpRoute(method vayload.HttpMethod, path string, handler vayload.HttpHandler, middlewares ...vayload.HttpHandler) vayload.HttpRoute {
-	return &httpRoute{
-		method:      method,
-		path:        path,
-		handler:     handler,
-		middlewares: middlewares,
+func NewKernel(name string, registry vayload.Container, events vayload.EventBus, services vayload.ServiceManager) *kernel {
+	return &kernel{
+		name:                      name,
+		registry:                  registry,
+		events:                    events,
+		services:                  services,
+		KernelLifecycleDispatcher: NewKernelLifecycleDispatcher(),
 	}
 }
 
-func (r *httpRoute) Path() string {
-	return r.path
+func (k *kernel) Name() string {
+	return k.name
 }
 
-func (r *httpRoute) Method() vayload.HttpMethod {
-	return r.method
+func (k *kernel) PublishEvent(event vayload.KernelEvent) {
+	k.events.Publish(context.Background(), event)
 }
 
-func (r *httpRoute) Handler() vayload.HttpHandler {
-	return r.handler
+func (k *kernel) SubscribeEvent(topic string, handler func(vayload.KernelEvent)) {
+	k.events.Subscribe(context.Background(), topic, func(e vayload.Event) {
+		if ke, ok := e.(vayload.KernelEvent); ok {
+			handler(ke)
+		}
+	})
 }
 
-func (r *httpRoute) Middlewares() []vayload.HttpHandler {
-	return r.middlewares
+func (k *kernel) Events() vayload.EventBus {
+	return k.events
 }
 
-func (r *httpRoute) PermissionRule() string {
-	return r.permission
+func (k *kernel) Container() vayload.Container {
+	return k.registry
 }
 
-func (r *httpRoute) Public() bool {
-	return r.public
+func (k *kernel) Services() vayload.ServiceManager {
+	return k.services
 }
+
+func (k *kernel) Bootstrap(ctx context.Context, args []string) error {
+	k.KernelBootstrap(vayload.KernelBootstrapEvent{
+		Context: ctx,
+		Args:    args,
+	})
+
+	if err := k.services.StartAll(ctx); err != nil {
+		return err
+	}
+
+	k.KernelStarted(vayload.KernelStartedEvent{
+		Context: ctx,
+	})
+
+	return nil
+}
+
+func (k *kernel) Shutdown(ctx context.Context) error {
+	k.KernelShutdown(vayload.KernelShutdownEvent{
+		Context: ctx,
+	})
+
+	return k.services.StopAll(ctx)
+}
+
+func (k *kernel) OnServiceRegistered(l vayload.ServiceRegisteredListener) {
+	k.services.OnServiceRegistered(l)
+}
+
+func (k *kernel) OnServiceStarting(l vayload.ServiceStartingListener) {
+	k.services.OnServiceStarting(l)
+}
+
+func (k *kernel) OnServiceStarted(l vayload.ServiceStartedListener) {
+	k.services.OnServiceStarted(l)
+}
+
+func (k *kernel) OnServiceStopping(l vayload.ServiceStoppingListener) {
+	k.services.OnServiceStopping(l)
+}
+
+func (k *kernel) OnServiceStopped(l vayload.ServiceStoppedListener) {
+	k.services.OnServiceStopped(l)
+}
+
+func (k *kernel) OnServiceError(l vayload.ServiceErrorListener) {
+	k.services.OnServiceError(l)
+}
+
+var _ vayload.Kernel = (*kernel)(nil)

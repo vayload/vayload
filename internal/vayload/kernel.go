@@ -31,6 +31,9 @@ type Kernel interface {
 
 	// Bostrap this kernel and return error when corrured
 	Bootstrap(ctx context.Context, args []string) error
+
+	// Shutdown this kernel and return error when corrured
+	Shutdown(ctx context.Context) error
 }
 
 // For work with command flags

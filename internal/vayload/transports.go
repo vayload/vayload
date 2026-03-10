@@ -16,7 +16,6 @@ import (
 	"time"
 
 	// Only necessary for grpc transport
-
 	"github.com/vayload/vayload/internal/shared/snowflake"
 	"google.golang.org/grpc"
 )
@@ -44,15 +43,25 @@ const (
 	HttpHead    HttpMethod = "HEAD"
 )
 
+func (m HttpMethod) String() string {
+	return string(m)
+}
+
 type HttpHandler func(req HttpRequest, res HttpResponse) error
 
-type HttpRoute interface {
-	Path() string
-	Method() HttpMethod
-	Handler() HttpHandler
-	Middlewares() []HttpHandler
-	PermissionRule() string
-	Public() bool
+type HttpRoute struct {
+	Path           string
+	Method         HttpMethod
+	Handler        HttpHandler
+	Middlewares    []HttpHandler
+	PermissionRule string
+	Public         bool
+}
+
+type HttpRoutesGroup struct {
+	Prefix      string
+	Middlewares []HttpHandler
+	Routes      []HttpRoute
 }
 
 type Cookie struct {
@@ -115,7 +124,7 @@ type HttpResponse interface {
 
 // Http Exposer for services expose http routes
 type HttpExposer interface {
-	HttpRoutes() []HttpRoute
+	HttpRoutes() []HttpRoutesGroup
 }
 
 // ====================================================================================
@@ -151,7 +160,6 @@ type Transport interface {
 
 type HttpTransport interface {
 	Transport
-	RegisterRoutes(routes []HttpRoute, version string)
 }
 
 type GrpcTransport interface {

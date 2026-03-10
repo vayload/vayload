@@ -36,6 +36,9 @@ type PublicService interface {
 	// Get service container
 	Container() Container
 
+	// Get event bus
+	EventBus() EventBus
+
 	// Get required services (other services that need to be running before this service)
 	RequiredServices() []ServiceName
 }
@@ -51,17 +54,33 @@ type Service interface {
 	SetStatus(status ServiceStatus)
 
 	// Shutdown the service
-	Shutdown()
+	Shutdown(ctx context.Context) error
 
 	// Set the container
 	SetContainer(c Container)
+
+	// Set the event bus
+	SetEventBus(bus EventBus)
 }
 
 type ServiceManager interface {
 	RegisterService(service Service)
 	DeleteService(name string)
-	GetService(name string) (Service, error)
+	GetService(name string) (Service, bool)
 	ListServices() []Service
+	StartAll(ctx context.Context) error
+	StopAll(ctx context.Context) error
+
+	OnServiceRegistered(l ServiceRegisteredListener)
+	OnServiceStarting(l ServiceStartingListener)
+	OnServiceStarted(l ServiceStartedListener)
+	OnServiceStopping(l ServiceStoppingListener)
+	OnServiceStopped(l ServiceStoppedListener)
+	OnServiceError(l ServiceErrorListener)
+}
+
+type ServiceListener interface {
+	OnServiceRegistered(service PublicService)
 }
 
 type ServiceName string
