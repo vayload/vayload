@@ -8,4 +8,3 @@ Designed to be fast, modular, and fully scriptable, Vayload gives you complete c
 0 - Enter in your hosting or server provider via ssh and create a new directory for your project. for example: cd /opt && mkdir vayload && cd vayload
 1 - Download the binary from the [releases](https://github.com/vayload/vayload/releases) page.
 2 - Run the binary with the `--help` flag to see the available options.
-3 -
