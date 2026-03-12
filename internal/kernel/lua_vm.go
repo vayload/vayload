@@ -122,7 +122,11 @@ type httpModule struct {
 
 func newHttpModule() *httpModule {
 	return &httpModule{
-		client: httpi.NewHttpClient(),
+		client: httpi.NewHttpClient(httpi.HttpClientConfig{
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+		}),
 	}
 }
 
@@ -225,30 +229,33 @@ func (m *httpModule) Load(L *lua.LState) int {
 
 func (mod *httpModule) makeHTTPRequest(method, url, body string, headers map[string]string) (*http.Response, error) {
 	ctx := context.Background()
+
+	var req *httpi.RequestBuilder
+
 	switch method {
 	case "GET":
-		return mod.client.Get(ctx, url, httpi.HttpClientConfig{
-			Headers: headers,
-		})
+		req = mod.client.Get(url)
 	case "POST":
-		return mod.client.Post(ctx, url, []byte(body), httpi.HttpClientConfig{
-			Headers: headers,
-		})
+		req = mod.client.Post(url)
 	case "PUT":
-		return mod.client.Put(ctx, url, []byte(body), httpi.HttpClientConfig{
-			Headers: headers,
-		})
+		req = mod.client.Put(url)
 	case "DELETE":
-		return mod.client.Delete(ctx, url, httpi.HttpClientConfig{
-			Headers: headers,
-		})
+		req = mod.client.Delete(url)
 	case "PATCH":
-		return mod.client.Patch(ctx, url, []byte(body), httpi.HttpClientConfig{
-			Headers: headers,
-		})
+		req = mod.client.Patch(url)
 	default:
 		return nil, fmt.Errorf("método HTTP no soportado: %s", method)
 	}
+
+	for k, v := range headers {
+		req.Header(k, v)
+	}
+
+	if body != "" && method != "GET" && method != "DELETE" {
+		req.Body([]byte(body))
+	}
+
+	return req.Send(ctx)
 }
 
 func (mod *httpModule) extractHeaders(L *lua.LState, position int) map[string]string {

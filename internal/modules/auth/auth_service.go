@@ -19,7 +19,6 @@ import (
 	"github.com/vayload/vayload/internal/modules/auth/infraestructure/persistence"
 	"github.com/vayload/vayload/internal/modules/auth/infraestructure/providers"
 	"github.com/vayload/vayload/internal/modules/auth/services/analytics"
-	"github.com/vayload/vayload/internal/modules/auth/services/authorization"
 	"github.com/vayload/vayload/internal/modules/auth/services/login"
 	"github.com/vayload/vayload/internal/modules/auth/services/recovery"
 	"github.com/vayload/vayload/internal/modules/auth/services/registration"
@@ -74,7 +73,6 @@ func (s *AuthService) Bootstrap(ctx context.Context, args map[string]any, reply 
 
 	userRepository := persistence.NewUserRepository(db)
 	analyticsRepository := persistence.NewAnalyticsRepository(db)
-	authorizationRepository := persistence.NewAuthorizationRepository(db, persistence.AuthorizationRepositoryConfig{})
 
 	tokenManager := security.NewJwtManager(security.JwtConfig{
 		PublicKeyBytes:     s.config.Security.JwtPublicKey,
@@ -88,9 +86,6 @@ func (s *AuthService) Bootstrap(ctx context.Context, args map[string]any, reply 
 	randomizer := security.NewRandomizer()
 	oAuth2Facade := providers.NewOAuth2Facade(s.config)
 
-	authorizationService := authorization.NewAuthorizationService(authorizationRepository)
-	container.SetInstance(AuthorizationServiceKey, authorizationService)
-
 	authStrategies := &login.AuthStrategies{
 		OAuth2:   oAuth2Facade,
 		Password: hashing,
@@ -103,8 +98,8 @@ func (s *AuthService) Bootstrap(ctx context.Context, args map[string]any, reply 
 
 	eventBus := s.EventBus()
 
-	loginService := login.NewLoginService(userRepository, tokenManager, randomizer, eventBus, authStrategies, authorizationService)
-	registerService := registration.NewRegisterService(userRepository, tokenManager, registrationStrategies, randomizer, eventBus, authorizationService)
+	loginService := login.NewLoginService(userRepository, tokenManager, randomizer, eventBus, authStrategies)
+	registerService := registration.NewRegisterService(userRepository, tokenManager, registrationStrategies, randomizer, eventBus)
 	recoveryService := recovery.NewRecoveryService(userRepository, &recovery.RecoveryStrategies{Password: hashing}, randomizer, eventBus)
 	analyticsService := analytics.NewAnalyticsService(analyticsRepository)
 

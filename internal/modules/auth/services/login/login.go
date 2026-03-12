@@ -11,10 +11,8 @@ package login
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/vayload/vayload/internal/modules/auth/domain"
-	"github.com/vayload/vayload/internal/modules/auth/services/authorization"
 	"github.com/vayload/vayload/internal/shared/errors"
 	"github.com/vayload/vayload/internal/shared/snowflake"
 	"github.com/vayload/vayload/pkg/collect"
@@ -28,12 +26,11 @@ type AuthStrategies struct {
 }
 
 type LoginService struct {
-	repository    domain.AuthRepository
-	tokenManager  domain.UserTokenManager
-	randomizer    domain.SecureRandomizer
-	EventBus      domain.EventBus
-	strategies    *AuthStrategies
-	authorization authorization.AuthorizationService
+	repository   domain.AuthRepository
+	tokenManager domain.UserTokenManager
+	randomizer   domain.SecureRandomizer
+	EventBus     domain.EventBus
+	strategies   *AuthStrategies
 }
 
 func NewLoginService(
@@ -42,16 +39,14 @@ func NewLoginService(
 	randomizer domain.SecureRandomizer,
 	EventBus domain.EventBus,
 	authStrategies *AuthStrategies,
-	authorization authorization.AuthorizationService,
 ) *LoginService {
 
 	return &LoginService{
-		repository:    repository,
-		tokenManager:  tokenManager,
-		randomizer:    randomizer,
-		EventBus:      EventBus,
-		strategies:    authStrategies,
-		authorization: authorization,
+		repository:   repository,
+		tokenManager: tokenManager,
+		randomizer:   randomizer,
+		EventBus:     EventBus,
+		strategies:   authStrategies,
 	}
 }
 
@@ -245,29 +240,29 @@ func (service *LoginService) LoginWithOAuth2(ctx context.Context, provider domai
 
 	// If user has no clientId, create a new client and bind authorization
 	if user.ClientId == nil {
-		client, policyErr := service.authorization.SetupWithEmail(user.Email, int(service.authorization.GetFreeProfileId()))
-		if policyErr != nil {
-			return nil, policyErr
-		}
+		// client, policyErr := service.authorization.SetupWithEmail(user.Email, int(service.authorization.GetFreeProfileId()))
+		// if policyErr != nil {
+		// 	return nil, policyErr
+		// }
 
-		user.ClientId = &client.Id
-		user.ProfileId = &client.ProfileId
+		// user.ClientId = &client.Id
+		// user.ProfileId = &client.ProfileId
 
-		binding := &domain.AuthorizationBinding{
-			UserId:    user.ID,
-			ProfileId: client.ProfileId,
-			ClientId:  client.Id,
-			Signature: client.Signature,
-		}
-		meta := &domain.UserMeta{
-			EmailVerified:     true,
-			ConfirmationToken: "",
-			VerificationCode:  "",
-		}
+		// binding := &domain.AuthorizationBinding{
+		// 	UserId:    user.ID,
+		// 	ProfileId: client.ProfileId,
+		// 	ClientId:  client.Id,
+		// 	Signature: client.Signature,
+		// }
+		// meta := &domain.UserMeta{
+		// 	EmailVerified:     true,
+		// 	ConfirmationToken: "",
+		// 	VerificationCode:  "",
+		// }
 
-		if authErr := service.repository.BindAuthorization(ctx, user.ID, binding, meta); authErr != nil {
-			return nil, authErr
-		}
+		// if authErr := service.repository.BindAuthorization(ctx, user.ID, binding, meta); authErr != nil {
+		// 	return nil, authErr
+		// }
 	}
 
 	token, err := service.tokenManager.GenerateJwtTokenWithRefresh(&domain.AuthUser{
@@ -387,23 +382,23 @@ func (service *LoginService) SetupUser(ctx context.Context, input SetupUserInput
 	// Perform user creation when not exists in the system
 	// Email is required for user creation
 	if user == nil {
-		user = domain.NewUser(input.Username, "", nil, domain.PatientRole)
-		user.CountryID = &input.CountryId
-		user.AuthType = input.Method
+		// user = domain.NewUser(input.Username, "", nil, domain.PatientRole)
+		// user.CountryID = &input.CountryId
+		// user.AuthType = input.Method
 
-		switch domain.IdentifierType(input.IdentifierType) {
-		case domain.IdentifierTypeEmail:
-			user.Email = input.Identifier
+		// switch domain.IdentifierType(input.IdentifierType) {
+		// case domain.IdentifierTypeEmail:
+		// 	user.Email = input.Identifier
 
-			// Perform authorization setup with email
-			policy, policyErr = service.authorization.SetupWithEmail(input.Identifier, input.ProfileId)
-		case domain.IdentifierTypePhone:
-			user.Email = fmt.Sprintf("%s@users.vayload.com", strings.ReplaceAll(input.Identifier, "+", "")) // Dummy email for phone-based users
-			user.Phone = &input.Identifier
+		// 	// Perform authorization setup with email
+		// 	policy, policyErr = service.authorization.SetupWithEmail(input.Identifier, input.ProfileId)
+		// case domain.IdentifierTypePhone:
+		// 	user.Email = fmt.Sprintf("%s@users.vayload.com", strings.ReplaceAll(input.Identifier, "+", "")) // Dummy email for phone-based users
+		// 	user.Phone = &input.Identifier
 
-			// Perform authorization setup with phone
-			policy, policyErr = service.authorization.SetupWithPhone(input.Identifier, input.ProfileId)
-		}
+		// 	// Perform authorization setup with phone
+		// 	policy, policyErr = service.authorization.SetupWithPhone(input.Identifier, input.ProfileId)
+		// }
 
 		// If error occurred while setting up user policy
 		// Prevent user creation if policy setup fails
@@ -437,10 +432,10 @@ func (service *LoginService) SetupUser(ctx context.Context, input SetupUserInput
 
 	// When policy is nil, it means user already exists
 	if policy == nil {
-		policy, policyErr = service.authorization.GetAuthorized(user.ID, *user.ClientId)
-		if policyErr != nil {
-			return nil, fmt.Errorf("getting user policy: %w", policyErr)
-		}
+		// policy, policyErr = service.authorization.GetAuthorized(user.ID, *user.ClientId)
+		// if policyErr != nil {
+		// 	return nil, fmt.Errorf("getting user policy: %w", policyErr)
+		// }
 	}
 
 	token, err := service.tokenManager.GenerateJwtTokenWithRefresh(&domain.AuthUser{
@@ -481,17 +476,17 @@ func (service *LoginService) GetCurrentSession(ctx context.Context, userId strin
 	}
 
 	// When policy is nil, it means user already exists
-	policy, policyErr := service.authorization.GetAuthorized(user.ID, *user.ClientId)
-	if policyErr != nil {
-		return nil, fmt.Errorf("getting user policy: %w", policyErr)
-	}
+	// policy, policyErr := service.authorization.GetAuthorized(user.ID, *user.ClientId)
+	// if policyErr != nil {
+	// 	return nil, fmt.Errorf("getting user policy: %w", policyErr)
+	// }
 
 	session := &domain.OAuthSession{
 		AccessToken: accessToken,
 		TokenType:   "Bearer",
 		User:        user,
-		Policies:    policy,
-		Meta:        nil,
+		// Policies:    policy,
+		Meta: nil,
 	}
 
 	return session, nil
@@ -506,10 +501,11 @@ func (service *LoginService) GetUserPermissions(ctx context.Context, userId snow
 		return nil, domain.ErrInvalidCredentials(nil)
 	}
 
-	policy, err := service.authorization.GetAuthorized(userId, *user.ClientId)
-	if err != nil {
-		return nil, fmt.Errorf("getting user policy: %w", err)
-	}
+	// policy, err := service.authorization.GetAuthorized(userId, *user.ClientId)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("getting user policy: %w", err)
+	// }
 
-	return policy, nil
+	// return policy, nil
+	return nil, nil
 }

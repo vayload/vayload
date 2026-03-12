@@ -52,9 +52,7 @@ func (request *httpRequest) GetHeader(key string) string {
 func (request *httpRequest) GetHeaders() map[string]string {
 	headers := make(map[string]string)
 	for key, values := range request.Ctx.GetReqHeaders() {
-		if len(values) > 0 {
-			headers[key] = values[0]
-		}
+		headers[key] = strings.Join(values, ", ")
 	}
 	return headers
 }

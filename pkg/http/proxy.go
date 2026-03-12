@@ -124,11 +124,45 @@ func (proxy *HttpProxy) AddResponseHook(hook ProxyResponseHook) {
 	proxy.resHook = append(proxy.resHook, hook)
 }
 
+func handleSendRequestErr(err error) (int, string) {
+	statusCode := http.StatusInternalServerError
+	errorMessage := "Internal Proxy Error"
+
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		statusCode = http.StatusGatewayTimeout // 504
+		errorMessage = "Upstream Service Timeout"
+	} else {
+		errStr := err.Error()
+		switch {
+		case strings.Contains(errStr, "connection refused"):
+		case strings.Contains(errStr, "actively refused it"):
+			statusCode = http.StatusBadGateway
+			errorMessage = "Upstream Service is Down"
+		case strings.Contains(errStr, "no such host"):
+			statusCode = http.StatusNotFound
+			errorMessage = "Upstream Host Not Found"
+		case strings.Contains(errStr, "context canceled"):
+			return 0, ""
+		}
+	}
+
+	return statusCode, errorMessage
+}
+
 func (proxy *HttpProxy) Handle(req vayload.HttpRequest, res vayload.HttpResponse, path string) error {
 	proxyRes, err := proxy.createAndSendRequest(req, path)
 	if err != nil {
-		res.SetStatus(http.StatusBadGateway)
-		return res.JSON(map[string]any{"error": err.Error()})
+		statusCode, errorMessage := handleSendRequestErr(err)
+		if statusCode == 0 {
+			return nil
+		}
+
+		res.SetStatus(statusCode)
+		return res.JSON(map[string]any{
+			"error":       errorMessage,
+			"details":     err.Error(),
+			"status_code": statusCode,
+		})
 	}
 	defer proxyRes.Body.Close()
 
@@ -167,8 +201,17 @@ func (proxy *HttpProxy) HandleWithBodyHook(
 ) error {
 	proxyRes, err := proxy.createAndSendRequest(req, path)
 	if err != nil {
-		res.SetStatus(http.StatusBadGateway)
-		return res.JSON(map[string]any{"error": err.Error()})
+		statusCode, errorMessage := handleSendRequestErr(err)
+		if statusCode == 0 {
+			return nil
+		}
+
+		res.SetStatus(statusCode)
+		return res.JSON(map[string]any{
+			"error":       errorMessage,
+			"details":     err.Error(),
+			"status_code": statusCode,
+		})
 	}
 	defer proxyRes.Body.Close()
 
@@ -226,6 +269,7 @@ func (proxy *HttpProxy) HandleWithBodyHook(
 
 func (proxy *HttpProxy) createAndSendRequest(req vayload.HttpRequest, path string) (*http.Response, error) {
 	finalPath := path
+	// Rewrite path
 	for _, rule := range proxy.rewriteRules {
 		if strings.HasPrefix(finalPath, rule.match) {
 			finalPath = strings.Replace(finalPath, rule.match, rule.replace, 1)
@@ -250,7 +294,7 @@ func (proxy *HttpProxy) createAndSendRequest(req vayload.HttpRequest, path strin
 		bodyReader = bytes.NewReader(body)
 	}
 
-	proxyReq, err := http.NewRequest(req.GetMethod(), targetURL, bodyReader)
+	proxyReq, err := http.NewRequestWithContext(req.Context(), req.GetMethod(), targetURL, bodyReader)
 	if err != nil {
 		return nil, err
 	}

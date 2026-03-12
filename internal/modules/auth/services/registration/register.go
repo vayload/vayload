@@ -13,7 +13,6 @@ import (
 	"crypto/subtle"
 
 	"github.com/vayload/vayload/internal/modules/auth/domain"
-	"github.com/vayload/vayload/internal/modules/auth/services/authorization"
 	"github.com/vayload/vayload/internal/shared/errors"
 )
 
@@ -22,12 +21,11 @@ type RegistrationStrategies struct {
 }
 
 type RegisterService struct {
-	repository    domain.AuthRepository
-	tokenManager  domain.UserTokenManager
-	strategies    *RegistrationStrategies
-	randomizer    domain.SecureRandomizer
-	EventBus      domain.EventBus
-	authorization authorization.AuthorizationService
+	repository   domain.AuthRepository
+	tokenManager domain.UserTokenManager
+	strategies   *RegistrationStrategies
+	randomizer   domain.SecureRandomizer
+	EventBus     domain.EventBus
 }
 
 func NewRegisterService(
@@ -36,15 +34,13 @@ func NewRegisterService(
 	strategies *RegistrationStrategies,
 	randomizer domain.SecureRandomizer,
 	EventBus domain.EventBus,
-	authorization authorization.AuthorizationService,
 ) *RegisterService {
 	return &RegisterService{
-		repository:    repository,
-		tokenManager:  tokenManager,
-		strategies:    strategies,
-		randomizer:    randomizer,
-		EventBus:      EventBus,
-		authorization: authorization,
+		repository:   repository,
+		tokenManager: tokenManager,
+		strategies:   strategies,
+		randomizer:   randomizer,
+		EventBus:     EventBus,
 	}
 }
 
@@ -102,12 +98,12 @@ func (service *RegisterService) ValidateRegister(ctx context.Context, input Regi
 	var policyErr error
 
 	// upsert user in authorization service
-	switch domain.IdentifierType(input.Type) {
-	case domain.IdentifierTypeEmail:
-		policy, policyErr = service.authorization.SetupWithEmail(user.Email, int(service.authorization.GetFreeProfileId()))
-	case domain.IdentifierTypePhone:
-		policy, policyErr = service.authorization.SetupWithPhone(*user.Phone, int(service.authorization.GetFreeProfileId()))
-	}
+	// switch domain.IdentifierType(input.Type) {
+	// case domain.IdentifierTypeEmail:
+	// 	policy, policyErr = service.authorization.SetupWithEmail(user.Email, int(service.authorization.GetFreeProfileId()))
+	// case domain.IdentifierTypePhone:
+	// 	policy, policyErr = service.authorization.SetupWithPhone(*user.Phone, int(service.authorization.GetFreeProfileId()))
+	// }
 
 	// If error occurred while setting up user policy
 	if policyErr != nil {
@@ -209,12 +205,12 @@ func (service *RegisterService) ConfirmEmailVerificationChange(ctx context.Conte
 		return err
 	}
 
-	updatedUser, _ := service.repository.FindByIdentifier(ctx, user.ID.String(), string(domain.IdentifierUserId))
-	if updatedUser != nil && updatedUser.ClientId != nil && *updatedUser.ClientId > 0 {
-		if err := service.authorization.With(updatedUser.ID, *updatedUser.ClientId).UpdateIdentifier(updatedUser.Email); err != nil {
-			return err
-		}
-	}
+	// updatedUser, _ := service.repository.FindByIdentifier(ctx, user.ID.String(), string(domain.IdentifierUserId))
+	// if updatedUser != nil && updatedUser.ClientId != nil && *updatedUser.ClientId > 0 {
+	// 	if err := service.authorization.With(updatedUser.ID, *updatedUser.ClientId).UpdateIdentifier(updatedUser.Email); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	code := service.randomizer.GenerateRandomNumericCode(6)
 	err = service.repository.UpdateVerificationCode(ctx, user.ID, code, "email")
@@ -223,7 +219,7 @@ func (service *RegisterService) ConfirmEmailVerificationChange(ctx context.Conte
 	}
 
 	go service.EventBus.Publish(ctx, domain.UserUpdateCodeEvent{
-		User: updatedUser,
+		// User: updatedUser,
 		Code: code,
 	})
 

@@ -403,7 +403,7 @@ func TestHttpProxy_HandleWithBodyHook(t *testing.T) {
 			t.Fatal("Expected error response body")
 		}
 
-		if !strings.Contains(errorBody["error"].(string), "Error modifying JSON body") {
+		if !strings.Contains(errorBody["error"].(string), "modification failed") {
 			t.Error("Expected error message about body modification")
 		}
 	})
@@ -476,7 +476,7 @@ func TestHttpProxy_ResponseHookError(t *testing.T) {
 func TestHttpProxy_TargetServerError(t *testing.T) {
 	// No target server - should cause connection error
 	proxy := NewHttpProxy(HttpProxyConfig{
-		BaseURL: "http://localhost:99999", // Non-existent server
+		BaseURL: "http://localhost:8090", // Non-existent server
 	})
 
 	req := &mockProxyRequest{
