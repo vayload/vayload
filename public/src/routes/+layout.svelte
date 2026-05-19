@@ -5,6 +5,7 @@
 
     import { start, inc, done, subscribe } from "$lib/packages/progress";
     import { beforeNavigate, afterNavigate } from "$app/navigation";
+    import { seedDatabase } from "$lib/db/seed";
 
     let active = $state(false);
     let progress = $state(0);
@@ -28,6 +29,8 @@
             active = act;
             progress = value;
         });
+
+        seedDatabase();
 
         return unsubscribe;
     });
