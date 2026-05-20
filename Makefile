@@ -1,260 +1,457 @@
-APP_SERVER=vayload-server
-APP_CLI=vayload
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
-GIT_COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+# =========================================================
+# Vayload Build System
+# =========================================================
 
-## Directories
-BIN_DIR=./bin
-DIST_DIR=./dist
-RELEASE_DIR=./release
-INSTALL_DIR=$(HOME)/bin
-CMD_SERVER=./cmd/server
-CMD_CLI=./cmd/cli
+.DEFAULT_GOAL := help
 
-## Platform detection
-GOOS ?= $(shell go env GOOS)
-GOARCH ?= $(shell go env GOARCH)
+SHELL := /bin/bash
+.ONESHELL:
 
-## Extension for executables
-EXT=
+# =========================================================
+# Application
+# =========================================================
+
+APP_SERVER := vayload-server
+APP_CLI := vayload
+
+CMD_SERVER := ./cmd/server
+CMD_CLI := ./cmd/cli
+
+# =========================================================
+# Directories
+# =========================================================
+
+BIN_DIR := ./bin
+DIST_DIR := ./dist
+RELEASE_DIR := ./release
+
+# =========================================================
+# Go / Platform
+# =========================================================
+
+GO := go
+
+GOOS ?= $(shell $(GO) env GOOS)
+GOARCH ?= $(shell $(GO) env GOARCH)
+
+EXT :=
 ifeq ($(GOOS),windows)
-	EXT=.exe
+	EXT := .exe
 endif
 
-## Build information
-LDFLAGS_VERSION=-X 'main.Version=$(VERSION)' \
+# =========================================================
+# Build Metadata
+# =========================================================
+
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
+GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+# =========================================================
+# Binary Names
+# =========================================================
+
+SERVER_BIN := $(BIN_DIR)/$(APP_SERVER)$(EXT)
+CLI_BIN := $(BIN_DIR)/$(APP_CLI)$(EXT)
+
+PACKAGE_NAME := vayload_$(VERSION)_$(GOOS)_$(GOARCH)
+
+# =========================================================
+# Build Configuration
+# =========================================================
+
+CGO_ENABLED ?= 1
+BUILD_MODE ?= release
+
+# Embedded metadata
+LDFLAGS_VERSION := \
+	-X 'main.Version=$(VERSION)' \
 	-X 'main.BuildTime=$(BUILD_TIME)' \
 	-X 'main.GitCommit=$(GIT_COMMIT)'
 
-## Platform-specific optimizations
-LDFLAGS=-s -w $(LDFLAGS_VERSION)
-GCFLAGS=
-BUILD_TAGS=
+# Base optimizations
+LDFLAGS := -s -w $(LDFLAGS_VERSION)
+GCFLAGS :=
+BUILD_TAGS :=
 
-# Linux optimizations
+# =========================================================
+# Platform Optimizations
+# =========================================================
+
+# Linux
 ifeq ($(GOOS),linux)
 	LDFLAGS += -extldflags '-static'
 	GCFLAGS += -trimpath
 	BUILD_TAGS += netgo osusergo
 endif
 
-# macOS optimizations
+# macOS
 ifeq ($(GOOS),darwin)
 	GCFLAGS += -trimpath
+
 	ifeq ($(GOARCH),arm64)
 		GCFLAGS += -N -l
 	endif
 endif
 
-# Windows optimizations
+# Windows
 ifeq ($(GOOS),windows)
 	BUILD_TAGS += netgo
 endif
 
-## CGO settings for static builds
-CGO_ENABLED ?= 1
-ifeq ($(GOOS),darwin)
-	CGO_ENABLED = 1
-endif
-
-## Build mode and optimization level
-BUILD_MODE ?= release
+# Debug mode
 ifeq ($(BUILD_MODE),debug)
-	LDFLAGS = -w $(LDFLAGS_VERSION)
+	LDFLAGS := -w $(LDFLAGS_VERSION)
 	GCFLAGS += -N -l
 endif
 
-GO_BUILD=CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
-	go build -v \
-		-ldflags='$(LDFLAGS)' \
-		-gcflags='$(GCFLAGS)' \
-		-tags='$(BUILD_TAGS)'
+# =========================================================
+# Go Build Command
+# =========================================================
 
-.PHONY: all build build-server build-cli build-client install-cli clean \
-	gen-fmc-keys gen-pair-keys test lint \
-	docker-build docker-push
+GO_BUILD = \
+	CGO_ENABLED=$(CGO_ENABLED) \
+	GOOS=$(GOOS) \
+	GOARCH=$(GOARCH) \
+	$(GO) build \
+	-v \
+	-trimpath \
+	-buildvcs=false \
+	-ldflags="$(LDFLAGS)" \
+	-gcflags="$(GCFLAGS)" \
+	-tags="$(BUILD_TAGS)"
 
-## Default target
-all: build
+# =========================================================
+# Systemd Install
+# =========================================================
 
-## Help
-help:
-	@echo 'Vayload Build System'
-	@echo ''
-	@echo 'Usage:'
-	@echo '  make [target]'
-	@echo ''
-	@echo 'Targets:'
-	@echo '  build           Build all components (server, cli, client)'
-	@echo '  build-server    Build server binary'
-	@echo '  build-cli       Build CLI binary'
-	@echo '  build-client    Build frontend client'
-	@echo '  install-cli     Build and install CLI to ~/bin'
-	@echo '  clean           Clean build artifacts'
-	@echo '  test            Run tests'
-	@echo '  lint            Run linter'
-	@echo '  docker-build    Build Docker image'
-	@echo ''
-	@echo 'Variables:'
-	@echo '  VERSION         Version string (default: git describe)'
-	@echo '  GOOS            Target OS (default: current)'
-	@echo '  GOARCH          Target architecture (default: current)'
-	@echo '  BUILD_MODE      Build mode: release|debug (default: release)'
-	@echo ''
-	@echo 'Examples:'
-	@echo '  make build'
-	@echo '  make build GOOS=linux GOARCH=amd64'
+SERVICE_NAME := $(APP_SERVER)
+SERVICE_FILE := /etc/systemd/system/$(SERVICE_NAME).service
+SERVICE_TEMPLATE := resources/$(SERVICE_NAME).service.tpl
 
-## Build all components
-build: build-server build-cli build-client
-	@echo ''
-	@echo '  ================================================='
-	@echo '  >> Complete build for $(GOOS)/$(GOARCH)'
-	@echo '  >> Version: $(VERSION)'
-	@echo '  ================================================='
+SYSTEM_SERVER_BIN := /usr/local/bin/$(APP_SERVER)
+SYSTEM_CLI_BIN := /usr/local/bin/$(APP_CLI)
 
-## Build server
-build-server:
-	@echo '  ================================================='
-	@echo '  >> Building VAYLOAD-SERVER'
-	@echo '  >> OS:        $(GOOS)'
-	@echo '  >> ARCH:      $(GOARCH)'
-	@echo '  >> CGO:       $(CGO_ENABLED)'
-	@echo '  >> VERSION:   $(VERSION)'
-	@echo '  >> COMMIT:    $(GIT_COMMIT)'
-	@echo '  >> LDFLAGS:   $(LDFLAGS)'
-	@echo '  >> GCFLAGS:   $(GCFLAGS)'
-	@echo '  >> TAGS:      $(BUILD_TAGS)'
-	@echo '  ================================================='
+# =========================================================
+# Frontend Static Assets
+# =========================================================
+
+FRONTEND_BUILD_DIR := web/build
+STATIC_DIR := static
+
+# =========================================================
+# Helpers
+# =========================================================
+
+define HEADER
+	@echo ""
+	@echo "================================================="
+	@echo ">> $(1)"
+	@echo "================================================="
+endef
+
+define BUILD_BINARY
+	$(call HEADER,Building $(1))
+
 	@mkdir -p $(BIN_DIR)
-	$(GO_BUILD) -o $(BIN_DIR)/$(APP_SERVER)$(EXT) $(CMD_SERVER)
-	@echo ''
-	@echo '  >> Server binary generated:'
-	@ls -lh $(BIN_DIR)/$(APP_SERVER)$(EXT)
-	@echo '  ================================================='
 
-## Build CLI
-build-cli:
-	@echo '  ================================================='
-	@echo '  >> Building VAYLOAD-CLI'
-	@echo '  >> OS:        $(GOOS)'
-	@echo '  >> ARCH:      $(GOARCH)'
-	@echo '  >> CGO:       $(CGO_ENABLED)'
-	@echo '  >> VERSION:   $(VERSION)'
-	@echo '  >> COMMIT:    $(GIT_COMMIT)'
-	@echo '  >> LDFLAGS:   $(LDFLAGS)'
-	@echo '  >> GCFLAGS:   $(GCFLAGS)'
-	@echo '  >> TAGS:      $(BUILD_TAGS)'
-	@echo '  ================================================='
-	@mkdir -p $(BIN_DIR)
-	$(GO_BUILD) -o $(BIN_DIR)/$(APP_CLI)$(EXT) $(CMD_CLI)
-	@echo ''
-	@echo '  >> CLI binary generated:'
-	@ls -lh $(BIN_DIR)/$(APP_CLI)$(EXT)
-	@echo '  ================================================='
+	$(GO_BUILD) \
+		-o $(BIN_DIR)/$(1)$(EXT) \
+		$(2)
 
-## Build frontend client
-build-client:
-	@echo '  ================================================='
-	@echo '  >> Building frontend client'
-	@echo '  ================================================='
-	@if [ ! -d "web" ]; then \
-		echo '  >> No web directory found, skipping frontend build'; \
-		exit 0; \
-	fi
-	@if ! command -v node >/dev/null 2>&1; then \
-		echo '  >> Node.js not installed, skipping frontend build'; \
-		exit 0; \
-	fi
-	@if ! command -v pnpm >/dev/null 2>&1; then \
-		echo '  >> pnpm not installed, skipping frontend build'; \
-		exit 0; \
-	fi
-	@if [ ! -d "web/node_modules" ]; then \
-		echo '  >> Installing frontend dependencies (pnpm install)'; \
-		cd web && pnpm install; \
+	@echo ""
+	@echo ">> Binary generated:"
+	@ls -lh $(BIN_DIR)/$(1)$(EXT)
+endef
+
+# =========================================================
+# PHONY
+# =========================================================
+
+.PHONY: \
+	help \
+	build \
+	build-server \
+	build-cli \
+	build-client \
+	package \
+	install \
+	dev \
+	test \
+	lint \
+	clean \
+	info \
+	version \
+	setup \
+	keys \
+	token
+
+# =========================================================
+# Help
+# =========================================================
+
+help: ## Show available targets
+	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
+	awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-22s\033[0m %s\n", $$1, $$2}'
+
+# =========================================================
+# Build
+# =========================================================
+
+build: build-server build-cli ## Build all binaries
+
+build-server: ## Build server binary
+	$(call BUILD_BINARY,$(APP_SERVER),$(CMD_SERVER))
+
+build-cli: ## Build CLI binary
+	$(call BUILD_BINARY,$(APP_CLI),$(CMD_CLI))
+
+compress: ## Compress binaries with UPX (if available)
+	@if command -v upx >/dev/null 2>&1; then \
+		echo ">> Compressing binaries with UPX"; \
+		upx $(SERVER_BIN); \
+		upx $(CLI_BIN); \
 	else \
-		echo '  >> node_modules found, skipping install'; \
+		echo ">> UPX not installed"; \
 	fi
-	@echo '  >> Building frontend (pnpm run build)'
-	@cd web && pnpm run build
-	@echo '  >> Frontend build complete'
 
-## Install CLI
-install-cli: build-cli
-	@echo '  >> Installing CLI'
-	@mkdir -p $(INSTALL_DIR)
-	@cp $(BIN_DIR)/$(APP_CLI)$(EXT) $(INSTALL_DIR)/$(APP_CLI)
-	@echo '  >> Installed $(APP_CLI) into $(INSTALL_DIR)'
-	@echo '  >> Binary size:'
-	@ls -lh $(INSTALL_DIR)/$(APP_CLI)
-	@echo '  >> Ensure $$HOME/bin is in your PATH'
+# =========================================================
+# Frontend
+# =========================================================
 
-## Run tests
-test:
-	@echo '  >> Running tests'
-	@go test -v -race -coverprofile=coverage.out ./...
-	@go tool cover -html=coverage.out -o coverage.html
-	@echo '  >> Coverage report generated: coverage.html'
+build-client: ## Build frontend client
+	$(call HEADER,Building frontend client)
 
-## Run linter
-lint:
-	@echo '  >> Running linter'
+	@if [ ! -d "web" ]; then \
+		echo ">> No web directory found"; \
+		exit 0; \
+	fi
+
+	@if ! command -v node >/dev/null 2>&1; then \
+		echo ">> Node.js not installed"; \
+		exit 0; \
+	fi
+
+	@if ! command -v pnpm >/dev/null 2>&1; then \
+		echo ">> pnpm not installed"; \
+		exit 0; \
+	fi
+
+	cd web
+
+	if [ ! -d "node_modules" ]; then \
+		echo ">> Installing dependencies"; \
+		pnpm install --frozen-lockfile; \
+	fi
+
+	echo ">> Building frontend"
+	pnpm run build
+
+# =========================================================
+# Package (GitHub Actions / Releases)
+# =========================================================
+
+package: build compress build-client ## Create release tar.gz package
+	$(call HEADER,Packaging release)
+
+	@mkdir -p $(DIST_DIR)/$(PACKAGE_NAME)
+	@mkdir -p $(RELEASE_DIR)
+
+	# -----------------------------------------------------
+	# Binaries
+	# -----------------------------------------------------
+
+	@cp $(SERVER_BIN) $(DIST_DIR)/$(PACKAGE_NAME)/
+	@cp $(CLI_BIN) $(DIST_DIR)/$(PACKAGE_NAME)/
+
+	# -----------------------------------------------------
+	# Frontend Static Assets
+	# -----------------------------------------------------
+
+	@if [ -d "$(FRONTEND_BUILD_DIR)" ]; then \
+		echo ">> Including frontend static assets"; \
+		mkdir -p $(DIST_DIR)/$(PACKAGE_NAME)/$(STATIC_DIR); \
+		cp -R $(FRONTEND_BUILD_DIR)/* \
+			$(DIST_DIR)/$(PACKAGE_NAME)/$(STATIC_DIR)/; \
+	else \
+		echo ">> No frontend build found"; \
+	fi
+
+	# -----------------------------------------------------
+	# Metadata
+	# -----------------------------------------------------
+
+	@cp README.md $(DIST_DIR)/$(PACKAGE_NAME)/ 2>/dev/null || true
+	@cp LICENSE $(DIST_DIR)/$(PACKAGE_NAME)/ 2>/dev/null || true
+
+	@echo "$(VERSION)" > $(DIST_DIR)/$(PACKAGE_NAME)/VERSION
+	@echo "$(GIT_COMMIT)" > $(DIST_DIR)/$(PACKAGE_NAME)/COMMIT
+
+	# -----------------------------------------------------
+	# Archive
+	# -----------------------------------------------------
+
+	@tar -czf \
+		$(RELEASE_DIR)/$(PACKAGE_NAME).tar.gz \
+		-C $(DIST_DIR) \
+		$(PACKAGE_NAME)
+
+	# -----------------------------------------------------
+	# Checksums
+	# -----------------------------------------------------
+
+	@cd $(RELEASE_DIR) && \
+	sha256sum $(PACKAGE_NAME).tar.gz > $(PACKAGE_NAME).sha256
+
+	@echo ""
+	@echo ">> Release generated:"
+	@echo "   $(RELEASE_DIR)/$(PACKAGE_NAME).tar.gz"
+
+
+# =========================================================
+# Install From Source
+# =========================================================
+
+install: build compress build-client ## Install server locally with systemd
+ifeq ($(GOOS),linux)
+	$(call HEADER,Installing $(SERVICE_NAME))
+
+	# -----------------------------------------------------
+	# Install Server Binary
+	# -----------------------------------------------------
+
+	@sudo cp $(SERVER_BIN) $(SYSTEM_SERVER_BIN)
+	@sudo chmod +x $(SYSTEM_SERVER_BIN)
+
+	# -----------------------------------------------------
+	# Install CLI Binary
+	# -----------------------------------------------------
+
+	@sudo cp $(CLI_BIN) $(SYSTEM_CLI_BIN)
+	@sudo chmod +x $(SYSTEM_CLI_BIN)
+
+	# -----------------------------------------------------
+	# Install Frontend Assets
+	# -----------------------------------------------------
+
+	@if [ -d "$(FRONTEND_BUILD_DIR)" ]; then \
+		echo ">> Installing frontend assets"; \
+		sudo mkdir -p /var/lib/$(SERVICE_NAME)/$(STATIC_DIR); \
+		sudo cp -R $(FRONTEND_BUILD_DIR)/* \
+			/var/lib/$(SERVICE_NAME)/$(STATIC_DIR)/; \
+	else \
+		echo ">> No frontend assets found"; \
+	fi
+
+	# -----------------------------------------------------
+	# Systemd Service
+	# -----------------------------------------------------
+
+	@if [ -f "$(SERVICE_FILE)" ]; then \
+		echo ">> Service already exists"; \
+	else \
+		echo ">> Rendering systemd service"; \
+		sed \
+			-e "s|{{DESCRIPTION}}|vayload-server Daemon Server|g" \
+			-e "s|{{DOCUMENTATION}}|https://vayload.dev/docs|g" \
+			-e "s|{{USER}}|$(USER)|g" \
+			-e "s|{{GROUP}}|$(USER)|g" \
+			-e "s|{{WORKDIR}}|$(HOME)|g" \
+			-e "s|{{EXEC_START}}|$(SYSTEM_SERVER_BIN)|g" \
+			-e "s|{{ENV}}|production|g" \
+			-e "s|{{ENV_FILE}}|/etc/$(SERVICE_NAME).env|g" \
+			-e "s|{{NAME}}|$(SERVICE_NAME)|g" \
+			$(SERVICE_TEMPLATE) | sudo tee $(SERVICE_FILE) > /dev/null; \
+	fi
+
+	# -----------------------------------------------------
+	# Reload Systemd
+	# -----------------------------------------------------
+
+	@sudo systemctl daemon-reload
+	@sudo systemctl enable $(SERVICE_NAME)
+	@sudo systemctl restart $(SERVICE_NAME)
+
+	@echo ""
+	@echo ">> Service installed successfully"
+
+else
+	@echo ">> systemd install only supported on Linux"
+	@exit 1
+endif
+
+# =========================================================
+# Development
+# =========================================================
+
+dev: ## Run development server
+	@command -v air >/dev/null 2>&1 || { \
+		echo "Air not installed. Run: make setup"; \
+		exit 1; \
+	}
+
+	air
+
+setup: ## Install development dependencies
+	$(call HEADER,Setup environment)
+
+	$(GO) mod tidy
+
+	@if ! command -v air >/dev/null 2>&1; then \
+		echo ">> Installing Air"; \
+		$(GO) install github.com/air-verse/air@latest; \
+	fi
+
+# =========================================================
+# Quality
+# =========================================================
+
+test: ## Run tests
+	$(call HEADER,Running tests)
+
+	@$(GO) test -v -race -coverprofile=coverage.out ./...
+
+lint: ## Run linter
+	$(call HEADER,Running linter)
+
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		golangci-lint run ./...; \
 	else \
-		echo '  >> golangci-lint not installed, skipping'; \
-		echo '  >> Install: https://golangci-lint.run/usage/install/'; \
+		echo ">> golangci-lint not installed"; \
 	fi
 
-## Clean build artifacts
-clean:
-	@echo '  >> Cleaning build artifacts'
-	@rm -rf $(BIN_DIR)/*
-	@rm -rf $(DIST_DIR)/*
-	@rm -rf $(RELEASE_DIR)/*
-	@rm -f $(INSTALL_DIR)/$(APP_CLI)
-	@rm -rf web/build web/node_modules
-	@rm -f coverage.out coverage.html
-	@echo '  >> Clean completed'
+# =========================================================
+# Utilities
+# =========================================================
 
-## Generate FMC keys (use: make gen-fmc-keys SECRET=your_secret)
-gen-fmc-keys:
-	@if [ -z "$(SECRET)" ]; then \
-		echo "Usage: make gen-fmc-keys SECRET=your_secret"; \
-		exit 1; \
-	fi
-	@./scripts/create-fmc-key.sh $(SECRET)
+clean: ## Clean build artifacts
+	$(call HEADER,Cleaning)
 
-## Generate key pair
-gen-pair-keys:
-	@./scripts/gen-pair-keys.sh
+	@rm -rf $(BIN_DIR)
+	@rm -rf $(DIST_DIR)
+	@rm -rf $(RELEASE_DIR)
 
+	@rm -f coverage.out
+	@rm -f coverage.html
 
-## Build Docker image
-docker-build:
-	@echo '  >> Building Docker image'
-	@docker build -t vayload:$(VERSION) .
-	@docker tag vayload:$(VERSION) vayload:latest
-	@echo '  >> Docker image built: vayload:$(VERSION)'
-
-## Push Docker image
-docker-push: docker-build
-	@echo '  >> Pushing Docker image'
-	@docker push vayload:$(VERSION)
-	@docker push vayload:latest
-
-## Show version
-version:
+version: ## Show version
 	@echo $(VERSION)
 
-## Show build info
-info:
-	@echo 'Build Information:'
-	@echo '  Version:    $(VERSION)'
-	@echo '  Commit:     $(GIT_COMMIT)'
-	@echo '  Build Time: $(BUILD_TIME)'
-	@echo '  OS:         $(GOOS)'
-	@echo '  Arch:       $(GOARCH)'
-	@echo '  CGO:        $(CGO_ENABLED)'
+info: ## Show build information
+	@echo "Version:    $(VERSION)"
+	@echo "Commit:     $(GIT_COMMIT)"
+	@echo "Build Time: $(BUILD_TIME)"
+	@echo "GOOS:       $(GOOS)"
+	@echo "GOARCH:     $(GOARCH)"
+	@echo "CGO:        $(CGO_ENABLED)"
+
+keys: ## Generate key pairs
+	@./scripts/generate-key-pairs.sh
+
+token: ## Generate token (SECRET=...)
+	@if [ -z "$(SECRET)" ]; then \
+		echo "Usage: make token SECRET=your_secret"; \
+		exit 1; \
+	fi
+
+	@./scripts/generate-fmc-key.sh $(SECRET)
