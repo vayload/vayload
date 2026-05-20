@@ -77,7 +77,7 @@ func (service *BaseService) SetEventBus(c vayload.EventBus) {
 type manager struct {
 	*ServiceLifecycleDispatcher
 	services map[vayload.ServiceName]vayload.Service
-	ordered  []vayload.Service
+	ordered  []vayload.Service // Maintains the order of services based on dependencies for proper shutdown
 	registry vayload.Container
 	events   vayload.EventBus
 
@@ -98,10 +98,13 @@ func (m *manager) RegisterService(service vayload.Service) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// Set container and event bus for the service before registering it, so that it's available during the service's bootstrap phase.
 	service.SetContainer(m.registry)
 	service.SetEventBus(m.events)
+
 	m.services[vayload.ServiceName(service.Name())] = service
 
+	// Emit service registered event
 	m.ServiceRegistered(vayload.ServiceRegisteredEvent{
 		Service: service,
 	})

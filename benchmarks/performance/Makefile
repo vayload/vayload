@@ -9,7 +9,7 @@ all: tidy bench-all
 # Full suite: benchmarks + human-readable tests
 bench-all:
 	@echo "=== Running all benchmarks + detailed tests ==="
-	go test ./performance/ \
+	go test ./ \
 		-v \
 		-run "TestColdStartDetailed|TestSustainedLoad" \
 		-bench "." \
@@ -22,7 +22,7 @@ bench-all:
 
 # Cold start only
 bench-cold:
-	go test ./performance/ \
+	go test ./ \
 		-bench "BenchmarkColdStart" \
 		-benchmem \
 		-benchtime=3s \
@@ -30,7 +30,7 @@ bench-cold:
 
 # Warm execution only
 bench-warm:
-	go test ./performance/ \
+	go test ./ \
 		-bench "BenchmarkWarm" \
 		-benchmem \
 		-benchtime=5s \
@@ -38,7 +38,7 @@ bench-warm:
 
 # Memory pressure
 bench-mem:
-	go test ./performance/ \
+	go test ./ \
 		-bench "BenchmarkMemory" \
 		-benchmem \
 		-benchtime=3s \
@@ -46,7 +46,7 @@ bench-mem:
 
 # Concurrent
 bench-concurrent:
-	go test ./performance/ \
+	go test ./ \
 		-bench "BenchmarkConcurrent" \
 		-benchmem \
 		-benchtime=5s \
@@ -55,7 +55,7 @@ bench-concurrent:
 
 # Pool / reuse pattern
 bench-pool:
-	go test ./performance/ \
+	go test ./ \
 		-bench "BenchmarkPool" \
 		-benchmem \
 		-benchtime=5s \
@@ -63,14 +63,14 @@ bench-pool:
 
 # Human-readable sustained load + cold start report
 bench-sustained:
-	go test ./performance/ \
+	go test ./ \
 		-v \
 		-run "TestSustainedLoad|TestColdStartDetailed" \
 		-timeout 60s
 
 # Profile CPU (outputs cpu.prof)
 profile-cpu:
-	go test ./performance/ \
+	go test ./ \
 		-bench "BenchmarkWarm_GopherLua_Fib|BenchmarkWarm_Goja_Fib|BenchmarkWarm_Tengo_Fib" \
 		-benchmem \
 		-benchtime=5s \
@@ -79,7 +79,7 @@ profile-cpu:
 
 # Profile memory (outputs mem.prof)
 profile-mem:
-	go test ./performance/ \
+	go test ./ \
 		-bench "BenchmarkColdStart" \
 		-benchmem \
 		-benchtime=5s \

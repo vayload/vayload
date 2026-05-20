@@ -1,0 +1,120 @@
+# ===== Configuration =====
+BIN_DIR := bin
+
+CLI_NAME := vayload
+SERVER_NAME := vayloadd
+
+CLI_CMD := ./cmd/cli
+SERVER_CMD := ./cmd/server
+
+GO := go
+LDFLAGS := -s -w
+
+GOOS := $(shell go env GOOS)
+GOARCH := $(shell go env GOARCH)
+
+EXT :=
+ifeq ($(GOOS),windows)
+	EXT := .exe
+endif
+
+CLI_BIN := $(BIN_DIR)/$(CLI_NAME)$(EXT)
+SERVER_BIN := $(BIN_DIR)/$(SERVER_NAME)$(EXT)
+
+SERVICE_NAME := vayloadd
+SERVICE_FILE := /etc/systemd/system/$(SERVICE_NAME).service
+SERVICE_TEMPLATE := resources/$(SERVICE_NAME).service.tpl
+
+SYSTEM_BIN := /usr/local/bin/$(SERVICE_NAME)
+
+# ===== Targets =====
+.PHONY: all build cli server install clean dev setup keys token
+
+all: build
+
+build: cli server
+
+cli:
+	@echo "Building CLI ($(GOOS)/$(GOARCH))..."
+	@mkdir -p $(BIN_DIR)
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build -ldflags="$(LDFLAGS)" -o $(CLI_BIN) $(CLI_CMD)
+	@echo "CLI built at $(CLI_BIN)"
+
+server:
+	@echo "Building server ($(GOOS)/$(GOARCH))..."
+	@mkdir -p $(BIN_DIR)
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build -ldflags="$(LDFLAGS)" -o $(SERVER_BIN) $(SERVER_CMD)
+	@echo "Server built at $(SERVER_BIN)"
+
+install: server
+ifeq ($(GOOS),linux)
+	@echo "Installing $(SERVICE_NAME) as systemd service..."
+
+	@sudo cp $(SERVER_BIN) $(SYSTEM_BIN)
+	@sudo chmod +x $(SYSTEM_BIN)
+
+	@if [ -f "$(SERVICE_FILE)" ]; then \
+		echo "Service already exists. Skipping template generation."; \
+	else \
+		echo "Rendering systemd service from template..."; \
+		sed \
+			-e "s|{{DESCRIPTION}}|vayloadd Daemon Server|g" \
+			-e "s|{{DOCUMENTATION}}|https://vayload.dev/docs|g" \
+			-e "s|{{USER}}|$(USER)|g" \
+			-e "s|{{GROUP}}|$(USER)|g" \
+			-e "s|{{WORKDIR}}|$(HOME)|g" \
+			-e "s|{{EXEC_START}}|$(SYSTEM_BIN)|g" \
+			-e "s|{{ENV}}|production|g" \
+			-e "s|{{ENV_FILE}}|/etc/$(SERVICE_NAME).env|g" \
+			-e "s|{{NAME}}|$(SERVICE_NAME)|g" \
+			$(SERVICE_TEMPLATE) | sudo tee $(SERVICE_FILE) > /dev/null; \
+	fi
+
+	@echo "Reloading systemd..."
+	sudo systemctl daemon-reload
+	sudo systemctl enable $(SERVICE_NAME)
+	sudo systemctl restart $(SERVICE_NAME)
+
+	@echo "Service $(SERVICE_NAME) installed and running."
+else
+	@echo "Error: systemd installation is only supported on Linux."
+	@exit 1
+endif
+
+dev:
+	@command -v air >/dev/null 2>&1 || { \
+		echo "Air not found. Run 'make setup' first."; exit 1; \
+	}
+	@echo "Starting development server with Air..."
+	air
+
+setup:
+	@echo "Running go mod tidy..."
+	$(GO) mod tidy
+
+	@echo "Checking Air..."
+	@if ! command -v air >/dev/null 2>&1; then \
+		echo "Installing Air..."; \
+		$(GO) install github.com/air-verse/air@latest; \
+	else \
+		echo "Air already installed."; \
+	fi
+
+	@echo "Setup complete."
+
+# ===== Utilities =====
+clean:
+	@echo "Cleaning binaries..."
+	@rm -rf $(BIN_DIR)
+	@echo "Clean complete."
+
+keys:
+	@echo "Generating key pairs..."
+	@./scripts/generate-key-pairs.sh
+
+token:
+	@if [ -z "$(SECRET)" ]; then \
+		echo "Usage: make token SECRET=your_secret"; \
+		exit 1; \
+	fi
+	@./scripts/generate-fmc-key.sh $(SECRET)

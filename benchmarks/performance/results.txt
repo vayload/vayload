@@ -1,0 +1,216 @@
+=== RUN   TestColdStartDetailed
+
+Engine                  Avg          Min          Max     TotalAlloc  GC cycles
+────────────────────────────────────────────────────────────────────────────
+GopherLua        3.493312ms    3.00335ms   9.708943ms      11414.3 KB          5
+GoLua            3.963283ms   3.267487ms  10.967329ms      11831.7 KB          5
+Goja             4.795216ms   4.685318ms   6.286899ms        889.6 KB          1
+Tengo            3.746539ms   3.074936ms   8.982183ms      17361.5 KB          6
+
+--- PASS: TestColdStartDetailed (0.80s)
+=== RUN   TestSustainedLoad
+
+=== Sustained Load (3s) ===
+Engine                      Ops      Ops/sec     TotalAlloc    GC cycles
+────────────────────────────────────────────────────────────────────────────
+GopherLua(warm)            1010          337          3.4 MB            2
+Goja(warm)                  621          207          1.8 MB            1
+Tengo(warm)                 911          304        277.6 MB           84
+GopherLua(cold)             876          292        195.2 MB           72
+Goja(cold)                  626          209         10.8 MB            4
+Tengo(cold)                 881          294        298.7 MB           94
+
+--- PASS: TestSustainedLoad (18.02s)
+=== RUN   TestColdStartDetailed
+
+Engine                  Avg          Min          Max     TotalAlloc  GC cycles
+────────────────────────────────────────────────────────────────────────────
+GopherLua         4.46328ms   2.992806ms  10.324594ms      11407.5 KB          4
+GoLua            3.617399ms   3.261412ms   8.382608ms      11831.7 KB          4
+Goja             5.134544ms   4.697543ms  15.106364ms        881.7 KB          1
+Tengo             4.78763ms   3.068793ms   9.421625ms      17361.6 KB          6
+
+--- PASS: TestColdStartDetailed (0.90s)
+=== RUN   TestSustainedLoad
+
+=== Sustained Load (3s) ===
+Engine                      Ops      Ops/sec     TotalAlloc    GC cycles
+────────────────────────────────────────────────────────────────────────────
+GopherLua(warm)            1031          344          3.5 MB            2
+Goja(warm)                  630          210          1.9 MB            1
+Tengo(warm)                 595          198        181.3 MB           55
+GopherLua(cold)             865          288        192.7 MB           67
+Goja(cold)                  618          206         10.6 MB            4
+Tengo(cold)                 696          232        236.0 MB           75
+
+--- PASS: TestSustainedLoad (18.02s)
+=== RUN   TestColdStartDetailed
+
+Engine                  Avg          Min          Max     TotalAlloc  GC cycles
+────────────────────────────────────────────────────────────────────────────
+GopherLua        4.590433ms   3.007684ms  10.322294ms      11407.7 KB          4
+GoLua            4.477455ms   3.261415ms  10.585733ms      11831.7 KB          4
+Goja             5.304176ms   4.678828ms   13.39947ms        881.7 KB          1
+Tengo            5.502463ms   3.085067ms  10.039301ms      17361.6 KB          6
+
+--- PASS: TestColdStartDetailed (1.00s)
+=== RUN   TestSustainedLoad
+
+=== Sustained Load (3s) ===
+Engine                      Ops      Ops/sec     TotalAlloc    GC cycles
+────────────────────────────────────────────────────────────────────────────
+GopherLua(warm)             989          330          3.3 MB            2
+Goja(warm)                  622          207          1.8 MB            1
+Tengo(warm)                 729          243        222.1 MB           67
+GopherLua(cold)             737          246        164.2 MB           59
+Goja(cold)                  627          209         10.8 MB            4
+Tengo(cold)                 618          206        209.5 MB           66
+
+--- PASS: TestSustainedLoad (18.03s)
+=== RUN   TestColdStartDetailed
+
+Engine                  Avg          Min          Max     TotalAlloc  GC cycles
+────────────────────────────────────────────────────────────────────────────
+GopherLua        5.667177ms   3.016834ms  10.473506ms      11412.8 KB          4
+GoLua            5.217573ms   3.445446ms  10.728633ms      11831.7 KB          4
+Goja             5.436123ms   4.746157ms  14.337367ms        881.7 KB          1
+Tengo             6.82042ms   3.100294ms  10.163902ms      17361.6 KB          6
+
+--- PASS: TestColdStartDetailed (1.16s)
+=== RUN   TestSustainedLoad
+
+=== Sustained Load (3s) ===
+Engine                      Ops      Ops/sec     TotalAlloc    GC cycles
+────────────────────────────────────────────────────────────────────────────
+GopherLua(warm)            1009          336          3.4 MB            2
+Goja(warm)                  620          207          1.8 MB            1
+Tengo(warm)                 694          231        211.5 MB           65
+GopherLua(cold)             686          229        152.8 MB           54
+Goja(cold)                  623          208         10.7 MB            4
+Tengo(cold)                 598          199        202.8 MB           65
+
+--- PASS: TestSustainedLoad (18.03s)
+goos: linux
+goarch: amd64
+pkg: github.com/vayload/benchmarks/performance
+cpu: AMD Ryzen 5 3500U with Radeon Vega Mobile Gfx  
+BenchmarkColdStart_GopherLua
+BenchmarkColdStart_GopherLua       	    1006	   3450474 ns/op	  233616 B/op	     983 allocs/op
+BenchmarkColdStart_GopherLua-2     	     962	   4016958 ns/op	  233616 B/op	     983 allocs/op
+BenchmarkColdStart_GopherLua-4     	     798	   4582897 ns/op	  233616 B/op	     983 allocs/op
+BenchmarkColdStart_GopherLua-8     	     764	   4538415 ns/op	  233617 B/op	     983 allocs/op
+BenchmarkColdStart_GoLua
+BenchmarkColdStart_GoLua           	     909	   3653960 ns/op	  242304 B/op	   28786 allocs/op
+BenchmarkColdStart_GoLua-2         	     733	   4862698 ns/op	  242304 B/op	   28786 allocs/op
+BenchmarkColdStart_GoLua-4         	     847	   4507682 ns/op	  242305 B/op	   28786 allocs/op
+BenchmarkColdStart_GoLua-8         	     760	   4670745 ns/op	  242305 B/op	   28786 allocs/op
+BenchmarkColdStart_Goja
+BenchmarkColdStart_Goja            	     758	   4804970 ns/op	   18048 B/op	     188 allocs/op
+BenchmarkColdStart_Goja-2          	     752	   7522940 ns/op	   18048 B/op	     188 allocs/op
+BenchmarkColdStart_Goja-4          	     488	   7425572 ns/op	   18048 B/op	     188 allocs/op
+BenchmarkColdStart_Goja-8          	     475	   7472998 ns/op	   18048 B/op	     188 allocs/op
+BenchmarkColdStart_Tengo
+BenchmarkColdStart_Tengo           	     662	   5519397 ns/op	  355544 B/op	   29009 allocs/op
+BenchmarkColdStart_Tengo-2         	     654	   6029651 ns/op	  355546 B/op	   29009 allocs/op
+BenchmarkColdStart_Tengo-4         	     609	   5767592 ns/op	  355546 B/op	   29009 allocs/op
+BenchmarkColdStart_Tengo-8         	     573	   6236059 ns/op	  355546 B/op	   29009 allocs/op
+BenchmarkWarm_GopherLua_Fib
+BenchmarkWarm_GopherLua_Fib        	     794	   4514833 ns/op	    3527 B/op	      11 allocs/op
+BenchmarkWarm_GopherLua_Fib-2      	     795	   4635470 ns/op	    3527 B/op	      11 allocs/op
+BenchmarkWarm_GopherLua_Fib-4      	     775	   4521208 ns/op	    3527 B/op	      11 allocs/op
+BenchmarkWarm_GopherLua_Fib-8      	     750	   4563593 ns/op	    3527 B/op	      11 allocs/op
+BenchmarkWarm_Goja_Fib
+BenchmarkWarm_Goja_Fib             	     471	   7458591 ns/op	    3109 B/op	      47 allocs/op
+BenchmarkWarm_Goja_Fib-2           	     482	   7379509 ns/op	    3109 B/op	      47 allocs/op
+BenchmarkWarm_Goja_Fib-4           	     488	   7451534 ns/op	    3109 B/op	      47 allocs/op
+BenchmarkWarm_Goja_Fib-8           	     471	   7430633 ns/op	    3109 B/op	      47 allocs/op
+BenchmarkWarm_Tengo_Fib
+BenchmarkWarm_Tengo_Fib            	     687	   5090696 ns/op	  319496 B/op	   28658 allocs/op
+BenchmarkWarm_Tengo_Fib-2          	     578	   5665811 ns/op	  319497 B/op	   28658 allocs/op
+BenchmarkWarm_Tengo_Fib-4          	     646	   5883467 ns/op	  319497 B/op	   28658 allocs/op
+BenchmarkWarm_Tengo_Fib-8          	     585	   5713268 ns/op	  319497 B/op	   28658 allocs/op
+BenchmarkWarm_GopherLua_Loop
+BenchmarkWarm_GopherLua_Loop       	   32244	    121160 ns/op	   24615 B/op	      93 allocs/op
+BenchmarkWarm_GopherLua_Loop-2     	   42804	     80761 ns/op	   24615 B/op	      93 allocs/op
+BenchmarkWarm_GopherLua_Loop-4     	   31772	    114002 ns/op	   24616 B/op	      93 allocs/op
+BenchmarkWarm_GopherLua_Loop-8     	   30945	    116739 ns/op	   24616 B/op	      93 allocs/op
+BenchmarkWarm_Goja_Loop
+BenchmarkWarm_Goja_Loop            	 1204960	      2982 ns/op	     816 B/op	      13 allocs/op
+BenchmarkWarm_Goja_Loop-2          	 1183884	      3169 ns/op	     816 B/op	      13 allocs/op
+BenchmarkWarm_Goja_Loop-4          	  919983	      3780 ns/op	     816 B/op	      13 allocs/op
+BenchmarkWarm_Goja_Loop-8          	  766843	      4204 ns/op	     816 B/op	      13 allocs/op
+BenchmarkWarm_Tengo_Loop
+BenchmarkWarm_Tengo_Loop           	   11467	    315065 ns/op	  106112 B/op	    2001 allocs/op
+BenchmarkWarm_Tengo_Loop-2         	   14064	    245067 ns/op	  106112 B/op	    2001 allocs/op
+BenchmarkWarm_Tengo_Loop-4         	   10000	    347854 ns/op	  106112 B/op	    2001 allocs/op
+BenchmarkWarm_Tengo_Loop-8         	    9970	    361958 ns/op	  106112 B/op	    2001 allocs/op
+BenchmarkWarm_GopherLua_String
+BenchmarkWarm_GopherLua_String     	   14073	    243188 ns/op	   56555 B/op	     803 allocs/op
+BenchmarkWarm_GopherLua_String-2   	   16922	    209320 ns/op	   56558 B/op	     803 allocs/op
+BenchmarkWarm_GopherLua_String-4   	   12345	    299002 ns/op	   56566 B/op	     803 allocs/op
+BenchmarkWarm_GopherLua_String-8   	   10000	    303085 ns/op	   56578 B/op	     803 allocs/op
+BenchmarkWarm_Goja_String
+BenchmarkWarm_Goja_String          	 1211048	      2975 ns/op	     816 B/op	      13 allocs/op
+BenchmarkWarm_Goja_String-2        	 1000000	      3101 ns/op	     816 B/op	      13 allocs/op
+BenchmarkWarm_Goja_String-4        	  927906	      3825 ns/op	     816 B/op	      13 allocs/op
+BenchmarkWarm_Goja_String-8        	  733850	      4092 ns/op	     816 B/op	      13 allocs/op
+BenchmarkWarm_Tengo_String
+BenchmarkWarm_Tengo_String         	   18883	    193192 ns/op	  160624 B/op	    1101 allocs/op
+BenchmarkWarm_Tengo_String-2       	   23187	    156654 ns/op	  160624 B/op	    1101 allocs/op
+BenchmarkWarm_Tengo_String-4       	   15374	    228404 ns/op	  160624 B/op	    1101 allocs/op
+BenchmarkWarm_Tengo_String-8       	   14988	    242555 ns/op	  160624 B/op	    1101 allocs/op
+BenchmarkConcurrent_GopherLua
+BenchmarkConcurrent_GopherLua      	     788	   4539883 ns/op	    5865 B/op	      21 allocs/op
+BenchmarkConcurrent_GopherLua-2    	    1392	   2279188 ns/op	    6174 B/op	      22 allocs/op
+BenchmarkConcurrent_GopherLua-4    	    2689	   1138063 ns/op	    6268 B/op	      23 allocs/op
+BenchmarkConcurrent_GopherLua-8    	    3780	    814891 ns/op	    7429 B/op	      28 allocs/op
+BenchmarkConcurrent_Goja
+BenchmarkConcurrent_Goja           	     482	   7408751 ns/op	    3232 B/op	      47 allocs/op
+BenchmarkConcurrent_Goja-2         	     810	   3737395 ns/op	    3258 B/op	      47 allocs/op
+BenchmarkConcurrent_Goja-4         	    1833	   1855804 ns/op	    3239 B/op	      47 allocs/op
+BenchmarkConcurrent_Goja-8         	    2636	   1258866 ns/op	    3304 B/op	      47 allocs/op
+BenchmarkConcurrent_Tengo
+BenchmarkConcurrent_Tengo          	     687	   5652101 ns/op	  319498 B/op	   28658 allocs/op
+BenchmarkConcurrent_Tengo-2        	    1178	   2651178 ns/op	  319500 B/op	   28658 allocs/op
+BenchmarkConcurrent_Tengo-4        	    2622	   1200123 ns/op	  319501 B/op	   28658 allocs/op
+BenchmarkConcurrent_Tengo-8        	    3553	   1193203 ns/op	  319506 B/op	   28658 allocs/op
+BenchmarkMemory_GopherLua
+BenchmarkMemory_GopherLua          	     945	   5081715 ns/op	    233616 B/op-total	        75.00 gc-cycles	  233616 B/op	     983 allocs/op
+BenchmarkMemory_GopherLua-2        	     740	   5164557 ns/op	    233616 B/op-total	        65.00 gc-cycles	  233616 B/op	     983 allocs/op
+BenchmarkMemory_GopherLua-4        	     625	   5824017 ns/op	    233616 B/op-total	        49.00 gc-cycles	  233616 B/op	     983 allocs/op
+BenchmarkMemory_GopherLua-8        	     560	   6212838 ns/op	    233617 B/op-total	        46.00 gc-cycles	  233616 B/op	     983 allocs/op
+BenchmarkMemory_Goja
+BenchmarkMemory_Goja               	     452	   7698785 ns/op	     18048 B/op-total	         3.000 gc-cycles	   18048 B/op	     188 allocs/op
+BenchmarkMemory_Goja-2             	     469	   7575453 ns/op	     18048 B/op-total	         3.000 gc-cycles	   18048 B/op	     188 allocs/op
+BenchmarkMemory_Goja-4             	     468	   8047173 ns/op	     18048 B/op-total	         3.000 gc-cycles	   18048 B/op	     188 allocs/op
+BenchmarkMemory_Goja-8             	     434	   7679762 ns/op	     18048 B/op-total	         3.000 gc-cycles	   18048 B/op	     188 allocs/op
+BenchmarkMemory_Tengo
+BenchmarkMemory_Tengo              	     660	   5363837 ns/op	    355544 B/op-total	        74.00 gc-cycles	  355544 B/op	   29009 allocs/op
+BenchmarkMemory_Tengo-2            	     595	   5548741 ns/op	    355545 B/op-total	        67.00 gc-cycles	  355545 B/op	   29009 allocs/op
+BenchmarkMemory_Tengo-4            	     608	   6277408 ns/op	    355546 B/op-total	        68.00 gc-cycles	  355545 B/op	   29009 allocs/op
+BenchmarkMemory_Tengo-8            	     532	   6095639 ns/op	    355545 B/op-total	        60.00 gc-cycles	  355545 B/op	   29009 allocs/op
+BenchmarkPool_GopherLua
+BenchmarkPool_GopherLua            	     792	   4542814 ns/op	    3818 B/op	      12 allocs/op
+BenchmarkPool_GopherLua-2          	     770	   4567926 ns/op	    3827 B/op	      13 allocs/op
+BenchmarkPool_GopherLua-4          	     757	   4538354 ns/op	    3832 B/op	      13 allocs/op
+BenchmarkPool_GopherLua-8          	     740	   4578085 ns/op	    3840 B/op	      13 allocs/op
+BenchmarkPool_Goja
+BenchmarkPool_Goja                 	     471	   7427246 ns/op	    3113 B/op	      47 allocs/op
+BenchmarkPool_Goja-2               	     468	   7667431 ns/op	    3114 B/op	      47 allocs/op
+BenchmarkPool_Goja-4               	     463	   7727157 ns/op	    3114 B/op	      47 allocs/op
+BenchmarkPool_Goja-8               	     481	   7670997 ns/op	    3115 B/op	      47 allocs/op
+BenchmarkPool_Tengo
+BenchmarkPool_Tengo                	     646	   5762384 ns/op	  319510 B/op	   28658 allocs/op
+BenchmarkPool_Tengo-2              	     663	   5052201 ns/op	  319523 B/op	   28658 allocs/op
+BenchmarkPool_Tengo-4              	     573	   5869070 ns/op	  319549 B/op	   28658 allocs/op
+BenchmarkPool_Tengo-8              	     579	   6018103 ns/op	  319612 B/op	   28658 allocs/op
+BenchmarkPlugin_GopherLua
+BenchmarkPlugin_GopherLua          	   13062	    274172 ns/op	  215648 B/op	     927 allocs/op
+BenchmarkPlugin_GopherLua-2        	   14994	    225619 ns/op	  215650 B/op	     927 allocs/op
+BenchmarkPlugin_GopherLua-4        	   10000	    344234 ns/op	  215649 B/op	     927 allocs/op
+BenchmarkPlugin_GopherLua-8        	   10000	    350669 ns/op	  215649 B/op	     927 allocs/op
+BenchmarkPlugin_Goja
+BenchmarkPlugin_Goja               	  117879	     28152 ns/op	    9256 B/op	     113 allocs/op
+BenchmarkPlugin_Goja-2             	  125481	     26327 ns/op	    9256 B/op	     113 allocs/op
+BenchmarkPlugin_Goja-4             	   92340	     37843 ns/op	    9256 B/op	     113 allocs/op
+BenchmarkPlugin_Goja-8             	   88432	     38233 ns/op	    9256 B/op	     113 allocs/op
