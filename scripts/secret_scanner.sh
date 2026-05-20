@@ -91,6 +91,7 @@ EXCLUDE_FILES=(
   "go.mod"
   "package-lock.json"
   "yarn.lock"
+  "secret_scanner.sh"
 )
 
 # Build exclude args
