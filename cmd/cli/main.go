@@ -1,33 +1,3 @@
-// package main
-
-// import (
-// 	"fmt"
-// 	"io"
-// 	"log"
-
-// 	"github.com/vayload/vayload/cmd/cli/client"
-// )
-
-// func main() {
-// 	client := client.NewVayloadClient()
-
-// 	res, err := client.Get("http://localhost:8080/health")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	if res.StatusCode != 200 {
-// 		log.Fatal(res.StatusCode)
-// 	}
-
-// 	data, err := io.ReadAll(res.Body)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	fmt.Println(string(data))
-// }
-
 package main
 
 import (

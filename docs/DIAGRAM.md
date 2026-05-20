@@ -303,7 +303,7 @@ Multiple protocol support for different use cases:
 | **gRPC** | Internal service-to-service communication | HTTP/2 |
 | **WebSocket** | Real-time bidirectional communication | WS/WSS |
 | **MCP** | AI tool integration for agents | MCP Protocol |
-| **CLI** | Administrative tools and automation | Direct process |
+| **CLI** | Administrative tools and automation | IPC |
 
 ### 3. Middleware Layers
 
@@ -871,7 +871,7 @@ Total: 9ms
 - [ ] gRPC streaming support
 - [ ] GraphQL transport layer
 - [ ] Multi-region replication
-- [ ] Plugin marketplace
+- [ ] Plugin marketplace (vayload-kit)
 - [ ] Visual plugin builder (low-code)
 - [ ] Advanced RBAC with attribute-based policies
 - [ ] Kubernetes operator for auto-scaling

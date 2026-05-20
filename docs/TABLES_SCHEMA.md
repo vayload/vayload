@@ -1,7 +1,7 @@
 ```sql
 // Project tables
 Table projects {
-  id bigint [pk, note: "Primary key del usuario"]
+  id bigint [pk]
   name varchar(125) [not null]
   slug varchar(125) [not null, unique]
   owner_id bigint [ref: > users.id]
@@ -23,7 +23,7 @@ Table project_members {
 
 // Users module
 Table users {
-  id bigint [pk, note: "Primary key del usuario"]
+  id bigint [pk]
   first_name varchar(125)
   last_name varchar(125)
   username varchar(125)
@@ -45,7 +45,7 @@ Table users {
   phone_change_sent_at datetime
   confirmed_at datetime [note: "GENERATED ALWAYS AS LEAST(email_confirmed_at, phone_confirmed_at)"]
   email_change_token_current varchar(255) [default: "''"]
-  email_change_confirm_status smallint [default: 0, note: "0 = pendiente, 1 = confirmado, 2 = cancelado"]
+  email_change_confirm_status smallint [default: 0, note: "0 = pending, 1 = confirmed, 2 = canceled"]
   otp_code VARCHAR(200)
   otp_sent_at DATETIME
   banned_until datetime
@@ -64,7 +64,7 @@ Table users {
 }
 
 Table user_identities {
-  id bigint [pk, note: "Primary key del usuario"]
+  id bigint [pk]
   user_id bigint [ref: > users.id]
   identity_id varchar(125) [not null]
   data json
@@ -189,7 +189,7 @@ Table entries {
   id bigint
 }
 
-// Manage blobs (files)
+// Manage blobs (files) (unestable)
 Table file_objects {
   id bigint [pk]
   owner_id bigint [ref: > users.id]

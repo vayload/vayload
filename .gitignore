@@ -15,6 +15,12 @@ config.toml
 config.json5
 plugins.json5
 
+# Build artifacts
+build/
+bin/
+release/
+dist/
+
 test.go
 deps.py
 deps.ts

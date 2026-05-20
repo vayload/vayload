@@ -12,7 +12,7 @@ go run ./cmd/vayload                 # Run the main server (dev mode)
 go test ./... -short                 # Run unit tests
 go test ./...                        # Full tests (including integration)
 go fmt ./...                         # Format code
-golangci-lint run                    # Lint (recommended)
+golangci-lint run                    # Lint
 make dev                             # Start with hot reload (using Air)
 make build                           # Build production binary
 make test                            # Run all tests + lint
@@ -35,7 +35,7 @@ air                                  # Live reload (configured in .air.toml)
 │   ├── vayload/            # Background jobs, queues, and workers
 │   └── types/              # Project-wide types
 ├── pkg/                    # Public packages (if published)
-├── public/                 # Built Svelte 5 frontend (shadcn + Tailwind)
+├── web/                    # Built Svelte 5 frontend (shadcn + Tailwind)
 ├── config/                 # Configuration examples
 ├── migrations/             # Database migrations
 ├── tests/                  # Integration and e2e tests
