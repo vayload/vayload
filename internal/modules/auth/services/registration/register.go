@@ -10,7 +10,6 @@ package registration
 
 import (
 	"context"
-	"crypto/subtle"
 
 	"github.com/vayload/vayload/internal/modules/auth/domain"
 	"github.com/vayload/vayload/internal/shared/errors"
@@ -54,100 +53,83 @@ func (service *RegisterService) RegisterUser(ctx context.Context, input Register
 	}
 
 	// Create new user with required fields
-	user := domain.NewUser(input.Username, input.Email, &input.Password, domain.PatientRole)
-	hashedPassword := service.strategies.Password.HashPassword(*user.Password)
+	user := domain.NewUser(input.Username, input.Email, &input.Password)
+	hashedPassword := service.strategies.Password.HashPassword(*user.PasswordHash)
 	user.SetPassword(&hashedPassword)
-	if user.Password == nil {
+	if user.PasswordHash == nil {
 		return nil, errors.New("failed to hash password")
 	}
 
-	code := service.randomizer.GenerateRandomNumericCode(6)
-	token := service.randomizer.GenerateRandomString(32, true)
+	// code := service.randomizer.GenerateRandomNumericCode(6)
+	// token := service.randomizer.GenerateRandomString(32, true)
 
 	// Create user with pending verification
-	user, err = service.repository.CreateUserWithCode(ctx, user, token, code)
+	err = service.repository.Create(ctx, user)
 	if err != nil {
 		return nil, err
 	}
 
-	go service.EventBus.Publish(ctx, domain.UserCreatedEvent{
-		User: user,
-		Code: code,
-	})
+	// go service.EventBus.Publish(ctx, domain.UserCreatedEvent{
+	// 	User: user,
+	// 	Code: code,
+	// })
 
 	return user, nil
 }
 
 // Validates the registration process by checking the verification code and setting up user authorization.
 func (service *RegisterService) ValidateRegister(ctx context.Context, input RegisterValidationInput) (*domain.OAuthSession, error) {
-	codes, err := service.repository.FindCodesByIdentifier(ctx, input.Identifier, input.Type, "email")
-	if err != nil || codes == nil {
-		return nil, domain.ErrUserNotFound(err)
-	}
-
-	if subtle.ConstantTimeCompare([]byte(*codes.VerificationCode), []byte(input.Code)) != 1 {
-		return nil, domain.ErrInvalidOtpCode(nil)
-	}
-
-	user, err := service.repository.FindByIdentifier(ctx, input.Identifier, input.Type)
-	if err != nil || user == nil {
-		return nil, domain.ErrUserNotFound(err)
-	}
-
-	var policy *domain.UserPolicy
-	var policyErr error
-
-	// upsert user in authorization service
-	// switch domain.IdentifierType(input.Type) {
-	// case domain.IdentifierTypeEmail:
-	// 	policy, policyErr = service.authorization.SetupWithEmail(user.Email, int(service.authorization.GetFreeProfileId()))
-	// case domain.IdentifierTypePhone:
-	// 	policy, policyErr = service.authorization.SetupWithPhone(*user.Phone, int(service.authorization.GetFreeProfileId()))
+	// codes, err := service.repository.FindCodesByIdentifier(ctx, input.Identifier, input.Type, "email")
+	// if err != nil || codes == nil {
+	// 	return nil, domain.ErrUserNotFound(err)
 	// }
 
-	// If error occurred while setting up user policy
-	if policyErr != nil {
-		return nil, policyErr
-	}
+	// if subtle.ConstantTimeCompare([]byte(*codes.VerificationCode), []byte(input.Code)) != 1 {
+	// 	return nil, domain.ErrInvalidOtpCode(nil)
+	// }
 
-	binding := &domain.AuthorizationBinding{
-		UserId:    user.ID,
-		ClientId:  policy.GetClientId(),
-		Signature: policy.GetSignature(),
-		ProfileId: policy.GetProfileId(),
-	}
+	// user, err := service.repository.FindByIdentifier(ctx, input.Identifier, domain.IdentifierType(input.Type))
+	// if err != nil || user == nil {
+	// 	return nil, domain.ErrUserNotFound(err)
+	// }
 
-	err = service.repository.BindAuthorization(ctx, user.ID, binding, &domain.UserMeta{
-		ConfirmationToken: "",
-		VerificationCode:  "",
-		EmailVerified:     true,
-	})
+	// var policy *domain.UserPolicy
+	// var policyErr error
 
-	if err != nil {
-		return nil, err
-	}
+	// // upsert user in authorization service
+	// // switch domain.IdentifierType(input.Type) {
+	// // case domain.IdentifierTypeEmail:
+	// // 	policy, policyErr = service.authorization.SetupWithEmail(user.Email, int(service.authorization.GetFreeProfileId()))
+	// // case domain.IdentifierTypePhone:
+	// // 	policy, policyErr = service.authorization.SetupWithPhone(*user.Phone, int(service.authorization.GetFreeProfileId()))
+	// // }
 
-	go service.EventBus.Publish(ctx, domain.UserEmailVerifiedEvent{
-		User: user,
-	})
+	// // If error occurred while setting up user policy
+	// if policyErr != nil {
+	// 	return nil, policyErr
+	// }
 
-	jwtToken, err := service.tokenManager.GenerateJwtTokenWithRefresh(&domain.AuthUser{
-		ID:        user.ID,
-		Email:     user.Email,
-		Role:      user.Role,
-		CountryId: user.CountryID,
-		ClientId:  binding.ClientId,
-	})
-	if err != nil {
-		return nil, err
-	}
+	// go service.EventBus.Publish(ctx, domain.UserEmailVerifiedEvent{
+	// 	User: user,
+	// })
 
-	return domain.NewOAuthSessionFromToken(jwtToken), nil
+	// jwtToken, err := service.tokenManager.GenerateJwtTokenWithRefresh(&domain.AuthUser{
+	// 	ID:        user.ID,
+	// 	Email:     user.Email,
+	// 	Role:      user.Role,
+	// 	CountryId: user.CountryID,
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// return domain.NewOAuthSessionFromToken(jwtToken), nil
+	return nil, nil
 }
 
 // Sends a verification code to the user's email.
 func (service *RegisterService) SendEmailVerificationCode(ctx context.Context, dto RegisterValidationInput) error {
-	user, err := service.repository.FindByIdentifier(ctx, dto.Identifier, dto.Type)
+	user, err := service.repository.FindByIdentifier(ctx, dto.Identifier, domain.IdentifierType(dto.Type))
 	if err != nil || user == nil {
 		if errors.Is(err, domain.ErrEmptyResultSet) {
 			return domain.ErrUserNotFound(err)
@@ -156,23 +138,23 @@ func (service *RegisterService) SendEmailVerificationCode(ctx context.Context, d
 		return err
 	}
 
-	code := service.randomizer.GenerateRandomNumericCode(6)
-	err = service.repository.UpdateVerificationCode(ctx, user.ID, code, "email")
-	if err != nil {
-		return err
-	}
+	// code := service.randomizer.GenerateRandomNumericCode(6)
+	// err = service.repository.UpdateVerificationCode(ctx, user.ID, code, "email")
+	// if err != nil {
+	// 	return err
+	// }
 
-	go service.EventBus.Publish(ctx, domain.UserUpdateCodeEvent{
-		User: user,
-		Code: code,
-	})
+	// go service.EventBus.Publish(ctx, domain.UserUpdateCodeEvent{
+	// 	User: user,
+	// 	Code: code,
+	// })
 
 	return nil
 }
 
 // Initiates the process to change the user's email by sending verification tokens.
 func (service *RegisterService) RequestEmailVerificationChange(ctx context.Context, input RegisterEmailChangeInput) error {
-	user, err := service.repository.FindByIdentifier(ctx, input.Identifier, input.Type)
+	user, err := service.repository.FindByIdentifier(ctx, input.Identifier, domain.IdentifierType(input.Type))
 	if err != nil || user == nil {
 		return domain.ErrUserNotFound(err)
 	}
@@ -212,16 +194,16 @@ func (service *RegisterService) ConfirmEmailVerificationChange(ctx context.Conte
 	// 	}
 	// }
 
-	code := service.randomizer.GenerateRandomNumericCode(6)
-	err = service.repository.UpdateVerificationCode(ctx, user.ID, code, "email")
-	if err != nil {
-		return err
-	}
+	// code := service.randomizer.GenerateRandomNumericCode(6)
+	// err = service.repository.UpdateVerificationCode(ctx, user.ID, code, "email")
+	// if err != nil {
+	// 	return err
+	// }
 
-	go service.EventBus.Publish(ctx, domain.UserUpdateCodeEvent{
-		// User: updatedUser,
-		Code: code,
-	})
+	// go service.EventBus.Publish(ctx, domain.UserUpdateCodeEvent{
+	// 	// User: updatedUser,
+	// 	Code: code,
+	// })
 
 	return nil
 }

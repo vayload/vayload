@@ -1,7 +1,8 @@
 <script lang="ts">
     import SectionHeader from "$lib/components/SectionHeader.svelte";
     import ContentTypeCard from "$lib/components/ContentTypeCard.svelte";
-    import { fetchCollections, type Collection } from "$lib/data";
+    import type { Collection } from "$lib/types";
+    import { contentTypesStore } from "$features/content-types";
     import { FileText, Tags, Users, Filter, Globe, Search, Plus } from "@lucide/svelte";
     import * as Dialog from "$lib/components/ui/dialog";
     import { Button } from "$lib/components/ui/button";
@@ -11,9 +12,10 @@
     import type { Component } from "svelte";
 
     import { FieldTypes } from "$lib/constants/field-types";
+    import { appContext } from "../../../shared/store.svelte";
 
     let collections = $state<(Collection & { icon: Component })[]>([]);
-    let loading = $state(true);
+    let loading = $derived(contentTypesStore.loading);
     let isDialogOpen = $state(false);
 
     let contentType = $state({
@@ -31,36 +33,32 @@
     ];
 
     $effect(() => {
-        fetchCollections().then((res) => {
-            collections = res.map((collection) => ({
-                ...collection,
-                icon: matchIconByType(collection.slug),
-            }));
+        contentTypesStore.fetch();
+    });
 
-            loading = false;
-        });
+    $effect(() => {
+        collections = contentTypesStore.items.map((collection) => ({
+            ...collection,
+            icon: matchIconByType(collection.slug),
+        }));
     });
 
     function handleCreate() {
         if (!contentType.name) return;
 
-        const newCollection: any = {
-            id: crypto.randomUUID(),
+        const projectId = appContext.currentProjectId ?? "";
+
+        contentTypesStore.create({
+            project_id: projectId,
             name: contentType.name,
             slug: contentType.name.toLowerCase().replace(/\s/g, "_"),
-            description: contentType.description,
-            single: contentType.single,
-            fields: defaultFields.length,
-            entries: 0,
             fields_schema: defaultFields.reduce((acc: any, field) => {
                 acc[field.name] = { type: field.type, required: field.required, label: field.label || field.name };
                 return acc;
             }, {}),
-            created_at: new Date().toISOString(),
-            icon: matchIconByType(contentType.name.toLowerCase()),
-        };
+            single: contentType.single,
+        });
 
-        collections = [...collections, newCollection];
         isDialogOpen = false;
 
         // Reset form

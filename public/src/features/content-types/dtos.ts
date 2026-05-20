@@ -20,3 +20,12 @@ export interface CreateCollectionDTO {
     settings?: Record<string, unknown>;
     single?: boolean;
 }
+
+export interface UpdateCollectionDTO {
+    name?: string;
+    slug?: string;
+    fields_schema?: CollectionSchema;
+    settings?: Record<string, unknown>;
+    entries?: number;
+    single?: boolean;
+}

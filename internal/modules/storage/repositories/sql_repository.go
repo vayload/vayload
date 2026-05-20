@@ -9,17 +9,23 @@ import (
 )
 
 type SQLStorageRepository struct {
-	db connection.DatabaseConnection
+	db            connection.DatabaseConnection
+	fileObjects   connection.QueryBuilder
+	folderObjects connection.QueryBuilder
 }
 
 func NewSQLStorageRepository(db connection.DatabaseConnection) *SQLStorageRepository {
-	return &SQLStorageRepository{db: db}
+	return &SQLStorageRepository{
+		db:            db,
+		fileObjects:   db.From("files"),
+		folderObjects: db.From("folders"),
+	}
 }
 
 // Folder Operations
 
 func (r *SQLStorageRepository) CreateFolder(ctx context.Context, folder *domain.FolderObject) error {
-	return r.db.From("folders").Insert(map[string]any{
+	return r.folderObjects.InsertOne(map[string]any{
 		"id":         folder.ID,
 		"owner_id":   folder.OwnerID,
 		"project_id": folder.ProjectID,
@@ -29,12 +35,12 @@ func (r *SQLStorageRepository) CreateFolder(ctx context.Context, folder *domain.
 		"depth":      folder.Depth,
 		"created_at": folder.CreatedAt,
 		"updated_at": folder.UpdatedAt,
-	}).Exec()
+	}).Exec(ctx)
 }
 
 func (r *SQLStorageRepository) GetFolderByID(ctx context.Context, id string) (*domain.FolderObject, error) {
 	var folder domain.FolderObject
-	err := r.db.From("folders").Where("id", "=", id).Get(&folder)
+	err := r.folderObjects.Where("id", "=", id).First(ctx, &folder)
 	if err != nil {
 		return nil, err
 	}
@@ -43,10 +49,10 @@ func (r *SQLStorageRepository) GetFolderByID(ctx context.Context, id string) (*d
 
 func (r *SQLStorageRepository) GetFolderByPath(ctx context.Context, projectID, path string) (*domain.FolderObject, error) {
 	var folder domain.FolderObject
-	err := r.db.From("folders").
+	err := r.folderObjects.
 		Where("project_id", "=", projectID).
 		Where("path", "=", path).
-		Get(&folder)
+		First(ctx, &folder)
 	if err != nil {
 		return nil, err
 	}
@@ -55,38 +61,38 @@ func (r *SQLStorageRepository) GetFolderByPath(ctx context.Context, projectID, p
 
 func (r *SQLStorageRepository) ListFolders(ctx context.Context, projectID string, parentID *string) ([]domain.FolderObject, error) {
 	var folders []domain.FolderObject
-	query := r.db.From("folders").Where("project_id", "=", projectID)
-	
+	query := r.folderObjects.Where("project_id", "=", projectID)
+
 	if parentID == nil {
 		query = query.WhereNull("parent_id")
 	} else {
 		query = query.Where("parent_id", "=", *parentID)
 	}
 
-	err := query.GetAll(&folders)
+	err := query.Get(ctx, &folders)
 	return folders, err
 }
 
 func (r *SQLStorageRepository) UpdateFolder(ctx context.Context, folder *domain.FolderObject) error {
-	return r.db.From("folders").Where("id", "=", folder.ID).Update(map[string]any{
+	return r.folderObjects.Where("id", "=", folder.ID).UpdateOne(map[string]any{
 		"name":       folder.Name,
 		"parent_id":  folder.ParentID,
 		"path":       folder.Path,
 		"depth":      folder.Depth,
 		"updated_at": folder.UpdatedAt,
-	}).Exec()
+	}).Exec(ctx)
 }
 
 func (r *SQLStorageRepository) DeleteFolder(ctx context.Context, id string) error {
-	return r.db.From("folders").Where("id", "=", id).Delete().Exec()
+	return r.folderObjects.Where("id", "=", id).Delete().Exec(ctx)
 }
 
 // File Operations
 
 func (r *SQLStorageRepository) CreateFile(ctx context.Context, file *domain.FileObject) error {
 	metadata, _ := json.Marshal(file.Metadata)
-	
-	return r.db.From("files").Insert(map[string]any{
+
+	return r.fileObjects.InsertOne(map[string]any{
 		"id":           file.ID,
 		"owner_id":     file.OwnerID,
 		"project_id":   file.ProjectID,
@@ -100,12 +106,12 @@ func (r *SQLStorageRepository) CreateFile(ctx context.Context, file *domain.File
 		"metadata":     string(metadata),
 		"created_at":   file.CreatedAt,
 		"updated_at":   file.UpdatedAt,
-	}).Exec()
+	}).Exec(ctx)
 }
 
 func (r *SQLStorageRepository) GetFileByID(ctx context.Context, id string) (*domain.FileObject, error) {
 	var file domain.FileObject
-	err := r.db.From("files").Where("id", "=", id).Get(&file)
+	err := r.fileObjects.Where("id", "=", id).Get(ctx, &file)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +120,7 @@ func (r *SQLStorageRepository) GetFileByID(ctx context.Context, id string) (*dom
 
 func (r *SQLStorageRepository) ListFiles(ctx context.Context, projectID string, folderID *string) ([]domain.FileObject, error) {
 	var files []domain.FileObject
-	query := r.db.From("files").Where("project_id", "=", projectID)
+	query := r.fileObjects.Where("project_id", "=", projectID)
 
 	if folderID == nil {
 		query = query.WhereNull("folder_id")
@@ -122,21 +128,21 @@ func (r *SQLStorageRepository) ListFiles(ctx context.Context, projectID string, 
 		query = query.Where("folder_id", "=", *folderID)
 	}
 
-	err := query.GetAll(&files)
+	err := query.Get(ctx, &files)
 	return files, err
 }
 
 func (r *SQLStorageRepository) UpdateFile(ctx context.Context, file *domain.FileObject) error {
 	metadata, _ := json.Marshal(file.Metadata)
 
-	return r.db.From("files").Where("id", "=", file.ID).Update(map[string]any{
+	return r.fileObjects.Where("id", "=", file.ID).UpdateOne(map[string]any{
 		"name":       file.Name,
 		"folder_id":  file.FolderID,
 		"updated_at": file.UpdatedAt,
 		"metadata":   string(metadata),
-	}).Exec()
+	}).Exec(ctx)
 }
 
 func (r *SQLStorageRepository) DeleteFile(ctx context.Context, id string) error {
-	return r.db.From("files").Where("id", "=", id).Delete().Exec()
+	return r.fileObjects.Where("id", "=", id).Delete().Exec(ctx)
 }

@@ -14,11 +14,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/vayload/vayload/cmd/server/local"
 	cfg "github.com/vayload/vayload/config"
 	"github.com/vayload/vayload/internal/shared/errors"
 	"github.com/vayload/vayload/internal/vayload"
@@ -68,6 +70,7 @@ func CreateHttpServer(config *cfg.Config) *HttpTransport {
 		AllowOrigins:     strings.Join(config.Cors.Origins, ","),
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
 		AllowCredentials: true,
+		Next:             isTrustedLocalSource,
 	}))
 	server.Use(helmet.New(helmet.Config{
 		CrossOriginEmbedderPolicy: "unsafe-none",
@@ -84,6 +87,7 @@ func CreateHttpServer(config *cfg.Config) *HttpTransport {
 			"frame-ancestors 'none'; " +
 			"form-action 'self'; " +
 			"base-uri 'self';",
+		Next: isTrustedLocalSource,
 	}))
 	server.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
@@ -159,7 +163,7 @@ func CreateHttpServer(config *cfg.Config) *HttpTransport {
 
 	v1_rest.Use(limiter.New(limiter.Config{
 		Next: func(c *fiber.Ctx) bool {
-			return c.IP() == "127.0.0.1"
+			return c.IP() == "127.0.0.1" || isTrustedLocalSource(c)
 		},
 		Max:        100,
 		Expiration: 30 * time.Second,
@@ -216,10 +220,22 @@ func (t *HttpTransport) Serve() error {
 	go func() {
 		fmt.Printf("Http server start listening in http://localhost:%d\n", t.config.HTTP.Port)
 		if err := t.server.Listen(fmt.Sprintf(":%d", t.config.HTTP.Port)); err != nil && err != http.ErrServerClosed {
-			logger.F(err, logger.Fields{"context": "http_server"})
+			logger.F(err, logger.Fields{"context": "http_server", "platform": runtime.GOOS})
 		}
 
 		t.isListening.Store(true)
+	}()
+
+	go func() {
+		listener, err := local.CreateLocalListener("vayload")
+		if err != nil {
+			logger.F(err, logger.Fields{"context": "create_local_listener", "platform": runtime.GOOS})
+		}
+
+		fmt.Printf("Http server start listening in unix socket %s\n", "vayload")
+		if err := t.server.Listener(listener); err != nil {
+			logger.F(err, logger.Fields{"context": "serve_local_listener", "platform": runtime.GOOS})
+		}
 	}()
 
 	return nil
@@ -350,3 +366,13 @@ const (
 	cyan   = "\033[36m"
 	reset  = "\033[0m"
 )
+
+func isTrustedLocalSource(c *fiber.Ctx) bool {
+	network := c.Context().RemoteAddr().Network()
+
+	if strings.HasPrefix(network, `\\.\pipe\`) || network == "unix" {
+		return true
+	}
+
+	return false
+}

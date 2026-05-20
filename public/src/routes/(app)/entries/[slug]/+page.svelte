@@ -1,6 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
-    import { fetchCollectionBySlug, fetchEntryWithFields, type EntryWithFields } from "$lib/data";
+    import type { EntryWithFields } from "$lib/types";
+    import { entriesService } from "$features/entries";
     import FieldInput from "$lib/components/field-types/FieldInput.svelte";
     import SectionHeader from "$lib/components/SectionHeader.svelte";
     import { Button } from "$lib/components/ui/button/index.js";
@@ -14,7 +15,7 @@
 
     $effect(() => {
         if (page.params.slug) {
-            fetchEntryWithFields(page.params.slug).then((res) => {
+            entriesService.findWithFields(page.params.slug).then((res) => {
                 if (!res) return;
                 collection = res;
                 loading = false;

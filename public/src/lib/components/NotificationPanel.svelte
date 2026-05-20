@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { notificationStore } from "$lib/stores/notificationStore.svelte";
+    import { settingsStore } from "$features/settings";
     import { X, Info, CheckCircle2, AlertCircle } from "@lucide/svelte";
 
     interface Props {
@@ -9,7 +9,7 @@
 
     let { isOpen, onClose }: Props = $props();
 
-    function formatTime(datetime: string): string {
+    function formatTime(datetime: Date | string): string {
         const date = new Date(datetime);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
@@ -23,11 +23,15 @@
     }
 
     async function handleMarkAllRead() {
-        await notificationStore.markAllAsRead();
+        await Promise.all(
+            settingsStore.notifications
+                .filter((n) => n.status === "unread")
+                .map((n) => settingsStore.markRead(n.id)),
+        );
     }
 
     async function handleNotificationClick(id: string) {
-        await notificationStore.markAsRead(id);
+        await settingsStore.markRead(id);
     }
 </script>
 
@@ -49,12 +53,12 @@
         </div>
 
         <div class="max-h-[400px] overflow-y-auto custom-scrollbar">
-            {#if notificationStore.notifications.length === 0}
+            {#if settingsStore.notifications.length === 0}
                 <div class="p-8 text-center text-neutral-500">
                     <p class="text-sm">No notifications</p>
                 </div>
             {:else}
-                {#each notificationStore.notifications as notif}
+                {#each settingsStore.notifications as notif}
                     <button
                         onclick={() => handleNotificationClick(notif.id)}
                         class="w-full p-4 border-b border-neutral-800 hover:bg-white/3 transition-colors cursor-pointer flex gap-3 text-left {notif.status ===

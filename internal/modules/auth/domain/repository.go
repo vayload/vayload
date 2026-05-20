@@ -10,42 +10,52 @@ package domain
 
 import (
 	"context"
+	"time"
 
 	"github.com/vayload/vayload/internal/shared/snowflake"
 )
 
 type AuthRepository interface {
-	FindByIdentifier(ctx context.Context, identifier string, identifierType string) (*User, error)
-	// find user by identifier, gets user identity and metadata like phone, email, country_id, passport, etc.
-	FindUserIdentity(ctx context.Context, identifier string, identifierType string) (*UserIdentity, error)
-	// FindMetadataByEmail(ctx context.Context, email string) (*UserMetadata, error)
-	// FindMetadataByIdentifier(ctx context.Context, identifier string, identifierType string) (*UserMetadata, error)
-	FindUserAuthByIdentifier(ctx context.Context, identifier string, identifierType string) (*UserAuth, error)
+	FindByID(ctx context.Context, id snowflake.ID) (*User, error)
+	FindByEmail(ctx context.Context, email string) (*User, error)
+	FindByUsername(ctx context.Context, username string) (*User, error)
+	FindByIdentifier(ctx context.Context, identifier string, identifierType IdentifierType) (*User, error)
 
-	UpdateMetadata(ctx context.Context, metadata *UserMetadata) error
-	UpdatePassword(ctx context.Context, userId snowflake.ID, newPassword string) error
+	Create(ctx context.Context, user *User) error
+	Update(ctx context.Context, user *User) error
+	Delete(ctx context.Context, id snowflake.ID) error
 
-	CreateUserWithSettings(ctx context.Context, user *User, settings *UserSettings) error
-	CreateUserWithCode(ctx context.Context, user *User, token string, code string) (*User, error)
-	SaveOtpCode(ctx context.Context, userId snowflake.ID, otpCode string) error
-	FindCodesByIdentifier(ctx context.Context, identifier string, identifierType string, typeCode string) (*UserVerification, error)
-	BindAuthorization(ctx context.Context, userId snowflake.ID, binding *AuthorizationBinding, meta *UserMeta) error
-	UpdateVerificationCode(ctx context.Context, userId snowflake.ID, code string, typeCode string) error
+	UpdatePassword(ctx context.Context, userID snowflake.ID, passwordHash string) error
+	UpdateLastSignIn(ctx context.Context, userID snowflake.ID, ip, userAgent string) error
+	SaveOtpCode(ctx context.Context, userID snowflake.ID, code string) error
 
-	// Password recovery
-	SaveRecoveryToken(ctx context.Context, userId snowflake.ID, token string) error
+	// Verification tokens
+	SaveConfirmationToken(ctx context.Context, userID snowflake.ID, token string) error
+	SaveRecoveryToken(ctx context.Context, userID snowflake.ID, token string) error
+	
+	FindUserByConfirmationToken(ctx context.Context, token string) (*User, error)
 	FindUserByRecoveryToken(ctx context.Context, token string) (*User, error)
-	ResetPasswordWithRecoveryToken(ctx context.Context, token string, newPassword string) error
+	
+	ConfirmEmail(ctx context.Context, userID snowflake.ID) error
+	ResetPasswordWithRecoveryToken(ctx context.Context, token string, hashedPassword string) error
 
-	// Email change during registration
-	SaveEmailChangeRequest(ctx context.Context, userId snowflake.ID, newEmail string, currentToken string, newToken string) error
+	// Email change
+	SaveEmailChangeRequest(ctx context.Context, userID snowflake.ID, newEmail string, currentToken string, newToken string) error
 	FindUserByEmailChangeTokens(ctx context.Context, currentToken string, newToken string) (*User, error)
-	ApplyEmailChange(ctx context.Context, userId snowflake.ID) error
-
-	FindCountryOtpProviders(ctx context.Context, countryId snowflake.ID) (*OtpProvider, error)
+	ApplyEmailChange(ctx context.Context, userID snowflake.ID) error
 }
 
 type AuthLogRepository interface {
-	SaveLogin(ctx context.Context, userId snowflake.ID, ipAddress string, userAgent string, method string, phone *string, email string) error
-	SaveExternalRequestLog(ctx context.Context, log *ExternalRequestLogging) error
+	SaveLogin(ctx context.Context, userID snowflake.ID, ipAddress string, userAgent string, method string, email string) error
+}
+
+type ExternalRequestLogging struct {
+	RequestID      string
+	URL            string
+	Method         string
+	RequestBody    string
+	RequestAt      time.Time
+	ResponseBody   string
+	ResponseStatus int
+	RequestElapsed int64
 }

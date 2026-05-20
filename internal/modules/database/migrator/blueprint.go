@@ -1,8 +1,10 @@
 package migrator
 
+import database_types "github.com/vayload/vayload/internal/modules/database/types"
+
 type Column struct {
 	Name       string
-	Type       string
+	Type       database_types.DataTypeKind
 	Length     int
 	Precision  int
 	Scale      int
@@ -31,7 +33,7 @@ type Index struct {
 	IsUnique bool
 }
 
-type CommandType int
+type CommandType uint8
 
 const (
 	AddColumnCommand CommandType = iota
@@ -74,7 +76,7 @@ func NewBlueprint(tableName string) *Blueprint {
 func (bp *Blueprint) ID() *Column {
 	col := &Column{
 		Name:      "id",
-		Type:      "INTEGER",
+		Type:      database_types.TypeBigInt,
 		IsPrimary: true,
 	}
 
@@ -85,7 +87,7 @@ func (bp *Blueprint) ID() *Column {
 func (bp *Blueprint) String(name string, length int) *Column {
 	col := &Column{
 		Name:   name,
-		Type:   "VARCHAR",
+		Type:   database_types.TypeVarchar,
 		Length: length,
 	}
 	bp.addColumn(col)
@@ -95,7 +97,7 @@ func (bp *Blueprint) String(name string, length int) *Column {
 func (bp *Blueprint) Text(name string) *Column {
 	col := &Column{
 		Name: name,
-		Type: "TEXT",
+		Type: database_types.TypeText,
 	}
 	bp.addColumn(col)
 	return col
@@ -104,7 +106,7 @@ func (bp *Blueprint) Text(name string) *Column {
 func (bp *Blueprint) Integer(name string) *Column {
 	col := &Column{
 		Name: name,
-		Type: "INTEGER",
+		Type: database_types.TypeInt,
 	}
 	bp.addColumn(col)
 	return col
@@ -113,7 +115,7 @@ func (bp *Blueprint) Integer(name string) *Column {
 func (bp *Blueprint) BigInteger(name string) *Column {
 	col := &Column{
 		Name: name,
-		Type: "BIGINT",
+		Type: database_types.TypeBigInt,
 	}
 	bp.addColumn(col)
 	return col
@@ -122,7 +124,7 @@ func (bp *Blueprint) BigInteger(name string) *Column {
 func (bp *Blueprint) Boolean(name string) *Column {
 	col := &Column{
 		Name: name,
-		Type: "BOOLEAN",
+		Type: database_types.TypeBool,
 	}
 	bp.addColumn(col)
 	return col
@@ -131,7 +133,7 @@ func (bp *Blueprint) Boolean(name string) *Column {
 func (bp *Blueprint) Timestamp(name string) *Column {
 	col := &Column{
 		Name: name,
-		Type: "TIMESTAMP",
+		Type: database_types.TypeTimestamp,
 	}
 	bp.addColumn(col)
 	return col
@@ -140,7 +142,7 @@ func (bp *Blueprint) Timestamp(name string) *Column {
 func (bp *Blueprint) Decimal(name string, precision, scale int) *Column {
 	col := &Column{
 		Name:      name,
-		Type:      "DECIMAL",
+		Type:      database_types.TypeDecimal,
 		Precision: precision,
 		Scale:     scale,
 	}
@@ -151,7 +153,7 @@ func (bp *Blueprint) Decimal(name string, precision, scale int) *Column {
 func (bp *Blueprint) Float(name string) *Column {
 	col := &Column{
 		Name: name,
-		Type: "FLOAT",
+		Type: database_types.TypeFloat,
 	}
 	bp.addColumn(col)
 	return col
@@ -160,7 +162,7 @@ func (bp *Blueprint) Float(name string) *Column {
 func (bp *Blueprint) JSON(name string) *Column {
 	col := &Column{
 		Name: name,
-		Type: "JSON",
+		Type: database_types.TypeJSON,
 	}
 	bp.addColumn(col)
 	return col
@@ -189,7 +191,7 @@ func (bp *Blueprint) SoftDeletes() {
 func (bp *Blueprint) Foreign(name string) *ForeignColumn {
 	col := &Column{
 		Name: name,
-		Type: "INTEGER",
+		Type: database_types.TypeBigInt,
 	}
 
 	fc := &ForeignColumn{

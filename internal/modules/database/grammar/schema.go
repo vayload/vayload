@@ -20,9 +20,3 @@ type SchemaGrammar interface {
 	HasTable(table string) (string, error)
 	HasColumn(table string, column string) (string, error)
 }
-type Grammar interface {
-	SchemaGrammar
-	InsertClause(record map[string]any) (string, []any)
-	UpdateClause(record map[string]any, filter map[string]any) (string, []any)
-	UpsertClause(data map[string]any, updateColumns []string) (string, []any)
-}

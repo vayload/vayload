@@ -23,7 +23,8 @@ type databaseConnection struct {
 }
 
 func NewConnection(ctx context.Context, user, password, host, port, schema string) (*databaseConnection, error) {
-	dsn := fmt.Sprintf("file:./data/%s.db?_journal_mode=WAL&_cache_size=10000&_foreign_keys=on", schema)
+	// dsn := fmt.Sprintf("file:./data/%s.db?_journal_mode=WAL&_cache_size=10000&_foreign_keys=on", schema)
+	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_cache_size=10000&_foreign_keys=on", schema)
 
 	db, err := sqlx.Connect("sqlite3", dsn)
 	if err != nil {
@@ -33,7 +34,7 @@ func NewConnection(ctx context.Context, user, password, host, port, schema strin
 	ctx, cancel := context.WithCancel(ctx)
 
 	return &databaseConnection{
-		BaseConnection: drivers.NewBaseConnection(db, ctx, cancel, connection.SQLiteDriver),
+		BaseConnection: drivers.NewBaseConnection(db, ctx, cancel, connection.SQLiteDriver, NewQueryGrammar()),
 		User:           user,
 		Password:       password,
 		Host:           host,

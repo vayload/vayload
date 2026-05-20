@@ -4,7 +4,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/vayload/vayload/pkg/encoding/json5"
+	"github.com/goccy/go-json"
 )
 
 const (
@@ -59,7 +59,7 @@ func (pc *PluginsManifest) Get(id string) (string, bool) {
 
 func (pc *PluginsManifest) Save() error {
 	pc.mu.RLock()
-	data, err := json5.MarshalIndent(pc, "", "    ")
+	data, err := json.MarshalIndent(pc, "", "    ")
 	pc.mu.RUnlock()
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func (pc *PluginsManifest) Load() error {
 		return err
 	}
 
-	return json5.Unmarshal(data, pc)
+	return json.Unmarshal(data, pc)
 }
 
 func (pc *PluginsManifest) Exists() bool {

@@ -1,35 +1,26 @@
 <script lang="ts">
     import SectionHeader from "$lib/components/SectionHeader.svelte";
     import ScrollableTabs from "$lib/components/ScrollableTabs.svelte";
-    import { filesStore } from "$lib/stores/files.store.svelte";
+    import { filesStore } from "$features/media";
     import { Images, Activity as VideoIcon, FileText, Plus, Upload, FolderPen, MoreHorizontal } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
     import { Checkbox } from "$lib/components/ui/checkbox";
-    import type { FileObject } from "$lib/data";
+    import type { FileObject } from "$lib/types";
 
     import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
 
     let activeTab = $state("all");
 
     $effect(() => {
-        // Solo navegar la primera vez si el store está vacío
-        if (
-            filesStore.currentFolderId === null &&
-            filesStore.currentItems.files.length === 0 &&
-            filesStore.currentItems.folders.length === 0
-        ) {
+        if (activeTab === "all") {
             filesStore.navigate(null);
+        } else {
+            filesStore.filterByCategory(activeTab);
         }
     });
 
     function handleTabChange(tabId: string) {
-        console.log(tabId);
         activeTab = tabId;
-        if (tabId === "all") {
-            filesStore.navigate(null);
-        } else {
-            filesStore.filterByCategory(tabId);
-        }
     }
 
     const onHoverFile = async (file: FileObject) => {

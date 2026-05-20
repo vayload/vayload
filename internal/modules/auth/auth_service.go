@@ -98,7 +98,20 @@ func (s *AuthService) Bootstrap(ctx context.Context, args map[string]any, reply 
 
 	eventBus := s.EventBus()
 
-	loginService := login.NewLoginService(userRepository, tokenManager, randomizer, eventBus, authStrategies)
+	rbacRepository := persistence.NewRbacRepository(db)
+	sessionRepository := persistence.NewSessionRepository(db)
+	refreshTokenRepository := persistence.NewRefreshTokenRepository(db)
+
+	loginService := login.NewLoginService(
+		userRepository,
+		rbacRepository,
+		sessionRepository,
+		refreshTokenRepository,
+		tokenManager,
+		randomizer,
+		eventBus,
+		authStrategies,
+	)
 	registerService := registration.NewRegisterService(userRepository, tokenManager, registrationStrategies, randomizer, eventBus)
 	recoveryService := recovery.NewRecoveryService(userRepository, &recovery.RecoveryStrategies{Password: hashing}, randomizer, eventBus)
 	analyticsService := analytics.NewAnalyticsService(analyticsRepository)

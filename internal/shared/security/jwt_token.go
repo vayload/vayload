@@ -85,13 +85,13 @@ func NewJwtManager(config JwtConfig) *JwtManager {
 	}
 }
 
-func (tk *JwtManager) GenerateJwtTokenWithRefresh(user *domain.AuthUser) (domain.SignedTokenWithRefresh, error) {
+func (tk *JwtManager) GenerateJwtTokenWithRefresh(user *domain.User) (domain.SignedTokenWithRefresh, error) {
 	token, err := tk.GenerateJwtToken(user)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken := tk.CreateRefreshToken(fmt.Sprintf("%d_%d_%s", user.ID, user.ClientId, user.Email))
+	refreshToken := tk.CreateRefreshToken(fmt.Sprintf("%d_%s", user.ID, user.Email))
 
 	return &jwtToken{
 		AccessToken:      token.GetAccessToken(),
@@ -99,23 +99,22 @@ func (tk *JwtManager) GenerateJwtTokenWithRefresh(user *domain.AuthUser) (domain
 		ExpiresAt:        token.GetExpiresAt(),
 		IssuedAt:         time.Now().UTC(),
 		Payload:          token.GetPayload(),
-		Meta:             user.Meta,
+		Meta:             user.Metadata,
 		ExpiresIn:        token.GetExpiresIn(),
 		RefreshExpiresAt: time.Now().UTC().Add(time.Duration(tk.ExpireRefreshToken) * time.Hour),
 		RefreshExpiresIn: tk.ExpireRefreshToken * 3600, // Convert hours to seconds
 	}, nil
 }
 
-func (tk *JwtManager) GenerateJwtToken(user *domain.AuthUser) (domain.SignedToken, error) {
+func (tk *JwtManager) GenerateJwtToken(user *domain.User) (domain.SignedToken, error) {
 	expiresAt := time.Now().UTC().Add(time.Duration(tk.ExpireAccessToken) * time.Minute)
 	payload := jwt.MapClaims{
-		"sub":        user.ID,
-		"email":      user.Email,
-		"role":       user.Role,
-		"client_id":  user.ClientId,
-		"country_id": user.CountryId,
-		"iat":        time.Now().UTC().Unix(),
-		"exp":        expiresAt.Unix(),
+		"sub":            user.ID,
+		"email":          user.Email,
+		"username":       user.Username,
+		"is_super_admin": user.IsSuperAdmin,
+		"iat":            time.Now().UTC().Unix(),
+		"exp":            expiresAt.Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, payload)
@@ -129,12 +128,12 @@ func (tk *JwtManager) GenerateJwtToken(user *domain.AuthUser) (domain.SignedToke
 		ExpiresAt:   expiresAt,
 		IssuedAt:    time.Now().UTC(),
 		Payload:     payload,
-		Meta:        user.Meta,
+		Meta:        user.Metadata,
 		ExpiresIn:   tk.ExpireAccessToken * 60, // Convert minutes to seconds
 	}, nil
 }
 
-func (tk *JwtManager) ValidateToken(accessToken string) (*domain.AuthUser, error) {
+func (tk *JwtManager) ValidateToken(accessToken string) (*domain.User, error) {
 	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (any, error) {
 		return tk.publicKey, nil
 	})
@@ -151,16 +150,7 @@ func (tk *JwtManager) ValidateToken(accessToken string) (*domain.AuthUser, error
 	return parseClaims(claims)
 }
 
-func (tk *JwtManager) CreateRefreshToken(payload string) string {
-	expire := time.Now().UTC().Add(time.Duration(tk.ExpireRefreshToken) * time.Hour).Unix()
-	signature := tk.signHMAC(payload)
-	signed := fmt.Sprintf("%s|%d|%s", payload, expire, signature)
-
-	return base64.RawURLEncoding.EncodeToString([]byte(signed))
-
-}
-
-func (tk *JwtManager) ValidateRefreshToken(tokenString string) (*domain.AuthUser, error) {
+func (tk *JwtManager) ValidateRefreshToken(tokenString string) (*domain.User, error) {
 	tokenBytes, err := base64.RawURLEncoding.DecodeString(tokenString)
 	if err != nil {
 		return nil, err
@@ -184,7 +174,7 @@ func (tk *JwtManager) ValidateRefreshToken(tokenString string) (*domain.AuthUser
 	}
 
 	partsData := strings.Split(data, "_")
-	if len(partsData) != 3 {
+	if len(partsData) != 2 {
 		return nil, errors.New("invalid token payload")
 	}
 
@@ -193,15 +183,20 @@ func (tk *JwtManager) ValidateRefreshToken(tokenString string) (*domain.AuthUser
 		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	role := partsData[1]
+	email := partsData[1]
 
-	email := partsData[2]
-
-	return &domain.AuthUser{
+	return &domain.User{
 		ID:    snowflake.ID(userID),
 		Email: email,
-		Role:  domain.UserRole(role),
 	}, nil
+}
+
+func (tk *JwtManager) CreateRefreshToken(payload string) string {
+	expire := time.Now().UTC().Add(time.Duration(tk.ExpireRefreshToken) * time.Hour).Unix()
+	signature := tk.signHMAC(payload)
+	signed := fmt.Sprintf("%s|%d|%s", payload, expire, signature)
+
+	return base64.RawURLEncoding.EncodeToString([]byte(signed))
 }
 
 func (tk *JwtManager) signHMAC(payload string) string {
@@ -210,51 +205,27 @@ func (tk *JwtManager) signHMAC(payload string) string {
 	return base64.RawURLEncoding.EncodeToString(h.Sum(nil))
 }
 
-func parseClaims(claims jwt.MapClaims) (*domain.AuthUser, error) {
+func parseClaims(claims jwt.MapClaims) (*domain.User, error) {
 	id, err := toInt64(claims["sub"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid id claim: %w", err)
 	}
 
-	role, exists := claims["role"].(string)
-	if !exists {
-		return nil, fmt.Errorf("invalid role claim: %w", err)
-	}
-
-	email, ok := claims["email"].(string)
-	if !ok {
-		return nil, fmt.Errorf("invalid email claim")
-	}
-
-	clientId, err := toInt64(claims["client_id"])
-	if err != nil {
-		return nil, fmt.Errorf("invalid client_id claim: %w", err)
-	}
-
-	countryId, err := toInt64(claims["country_id"])
-	if err != nil {
-		logger.W("invalid country_id claim", logger.Fields{"error": err})
-	}
+	email, _ := claims["email"].(string)
+	username, _ := claims["username"].(string)
+	isSuperAdmin, _ := claims["is_super_admin"].(bool)
 
 	var meta map[string]any
-	if metaValue, exists := claims["meta"]; exists && metaValue != nil {
-		var err error
-		meta, err = parseMeta(metaValue)
-		if err != nil {
-			logger.W("invalid meta claim", logger.Fields{"error": err})
-			// Don't return error, just use nil meta
-			meta = nil
-		}
+	if m, ok := claims["meta"].(map[string]any); ok {
+		meta = m
 	}
 
-	countryID := snowflake.ID(countryId)
-	return &domain.AuthUser{
-		ID:        snowflake.ID(id),
-		Email:     email,
-		Role:      domain.UserRole(role),
-		ClientId:  int64(clientId),
-		CountryId: &countryID,
-		Meta:      meta,
+	return &domain.User{
+		ID:           snowflake.ID(id),
+		Email:        email,
+		Username:     username,
+		IsSuperAdmin: isSuperAdmin,
+		Metadata:     meta,
 	}, nil
 }
 

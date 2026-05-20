@@ -11,12 +11,12 @@ package login
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/vayload/vayload/internal/modules/auth/domain"
 	"github.com/vayload/vayload/internal/shared/errors"
 	"github.com/vayload/vayload/internal/shared/snowflake"
-	"github.com/vayload/vayload/pkg/collect"
-	"github.com/vayload/vayload/pkg/logger"
 )
 
 type AuthStrategies struct {
@@ -26,32 +26,40 @@ type AuthStrategies struct {
 }
 
 type LoginService struct {
-	repository   domain.AuthRepository
-	tokenManager domain.UserTokenManager
-	randomizer   domain.SecureRandomizer
-	EventBus     domain.EventBus
-	strategies   *AuthStrategies
+	userRepo          domain.AuthRepository
+	rbacRepo          domain.RbacRepository
+	sessionRepo       domain.SessionRepository
+	refreshRepository domain.RefreshTokenRepository
+	tokenManager      domain.UserTokenManager
+	randomizer        domain.SecureRandomizer
+	eventBus          domain.EventBus
+	strategies        *AuthStrategies
 }
 
 func NewLoginService(
-	repository domain.AuthRepository,
+	userRepo domain.AuthRepository,
+	rbacRepo domain.RbacRepository,
+	sessionRepo domain.SessionRepository,
+	refreshRepository domain.RefreshTokenRepository,
 	tokenManager domain.UserTokenManager,
 	randomizer domain.SecureRandomizer,
-	EventBus domain.EventBus,
+	eventBus domain.EventBus,
 	authStrategies *AuthStrategies,
 ) *LoginService {
-
 	return &LoginService{
-		repository:   repository,
-		tokenManager: tokenManager,
-		randomizer:   randomizer,
-		EventBus:     EventBus,
-		strategies:   authStrategies,
+		userRepo:          userRepo,
+		rbacRepo:          rbacRepo,
+		sessionRepo:       sessionRepo,
+		refreshRepository: refreshRepository,
+		tokenManager:      tokenManager,
+		randomizer:        randomizer,
+		eventBus:          eventBus,
+		strategies:        authStrategies,
 	}
 }
 
-func (service *LoginService) IdentifyUserForFactor(ctx context.Context, input IdentifyInput) (*AuthStepCredentials, error) {
-	user, err := service.repository.FindUserIdentity(ctx, input.UserIdentifier, input.IdentifierType)
+func (s *LoginService) IdentifyUserForFactor(ctx context.Context, input IdentifyInput) (*AuthStepCredentials, error) {
+	user, err := s.userRepo.FindByIdentifier(ctx, input.UserIdentifier, domain.IdentifierType(input.IdentifierType))
 	if user == nil || err != nil {
 		return nil, domain.ErrUserNotFound(err)
 	}
@@ -62,30 +70,12 @@ func (service *LoginService) IdentifyUserForFactor(ctx context.Context, input Id
 		ClientType:     input.ClientType,
 	}
 
-	// if the factor is otp required notifications provider for send otp codes
-	// send client this informacion for better UX and UI
 	if input.ForFactor == domain.OtpStrategyType {
 		otpProviders := &domain.OtpProvider{
-			Email:    []string{},
+			Email:    []string{"sendia"},
 			SMS:      []string{},
-			WhatsApp: []string{},
+			WhatsApp: []string{"vayload-ws"},
 		}
-
-		if user.CountryID != nil {
-			countryId := snowflake.ID(*user.CountryID)
-			otpProvider, err := service.repository.FindCountryOtpProviders(context.Background(), countryId)
-			if err != nil {
-				// Only log the error, because it's not critical and needs to be handled gracefully
-				logger.E(err, logger.Fields{"context": "IdentifyUserForFactor", "countryId": countryId})
-			} else if otpProvider != nil {
-				otpProviders = &domain.OtpProvider{
-					Email:    collect.Filter(otpProvider.Email, func(item string) bool { return item != "" && item != "null" }),
-					SMS:      collect.Filter(otpProvider.SMS, func(item string) bool { return item != "" && item != "null" }),
-					WhatsApp: collect.Filter(otpProvider.WhatsApp, func(item string) bool { return item != "" && item != "null" }),
-				}
-			}
-		}
-
 		credentials.OtpProviders = otpProviders
 		credentials.Destinations = map[string]any{
 			"email": MaskIdentity(user.Email, "email"),
@@ -93,42 +83,23 @@ func (service *LoginService) IdentifyUserForFactor(ctx context.Context, input Id
 		if user.Phone != nil {
 			credentials.Destinations["phone"] = MaskIdentity(*user.Phone, "phone")
 		}
-
-		// Include a default if not foudn any provider for this country
-		switch domain.IdentifierType(input.IdentifierType) {
-		case domain.IdentifierTypeEmail:
-			if len(otpProviders.Email) == 0 {
-				otpProviders.Email = []string{"sendia"}
-			}
-		case domain.IdentifierTypePhone:
-			if len(otpProviders.SMS) == 0 {
-				otpProviders.SMS = []string{}
-			}
-			if len(otpProviders.WhatsApp) == 0 {
-				otpProviders.WhatsApp = []string{"vayload-ws"}
-			}
-		}
 	}
 
 	return credentials, nil
 }
 
-func (service *LoginService) GenerateOtpCode(ctx context.Context, input OtpCodeGenInput) error {
-	identifierType := detectIdentifierType(input.Identifier)
-
-	user, err := service.repository.FindByIdentifier(ctx, input.Identifier, identifierType)
+func (s *LoginService) GenerateOtpCode(ctx context.Context, input OtpCodeGenInput) error {
+	user, err := s.userRepo.FindByIdentifier(ctx, input.Identifier, domain.IdentifierType(detectIdentifierType(input.Identifier)))
 	if err != nil || user == nil {
 		return domain.ErrUserNotFound(err)
 	}
 
-	otpCode := service.strategies.OtpCode.GenerateOtpCode()
-
-	// Send OTP code to user
-	if err := service.repository.SaveOtpCode(context.Background(), user.ID, otpCode); err != nil {
+	otpCode := s.strategies.OtpCode.GenerateOtpCode()
+	if err := s.userRepo.SaveOtpCode(ctx, user.ID, otpCode); err != nil {
 		return fmt.Errorf("saving OTP code: %w", err)
 	}
 
-	go service.EventBus.Publish(ctx, domain.OtpCodeGeneratedEvent{
+	go s.eventBus.Publish(ctx, domain.OtpCodeGeneratedEvent{
 		User:    user,
 		Code:    otpCode,
 		Channel: input.Channel,
@@ -137,375 +108,164 @@ func (service *LoginService) GenerateOtpCode(ctx context.Context, input OtpCodeG
 	return nil
 }
 
-// =========================== LOGIN METHODS =====================
-func (service *LoginService) LoginWithPassword(ctx context.Context, input LoginInput, authContext domain.AuthContext) (*domain.OAuthSession, error) {
-	identifierType := detectIdentifierType(input.Identifier)
-
-	user, err := service.repository.FindByIdentifier(ctx, input.Identifier, identifierType)
+func (s *LoginService) LoginWithPassword(ctx context.Context, input LoginInput, authCtx domain.AuthContext) (*domain.OAuthSession, error) {
+	user, err := s.userRepo.FindByIdentifier(ctx, input.Identifier, domain.IdentifierType(detectIdentifierType(input.Identifier)))
 	if err != nil {
 		return nil, domain.ErrInvalidCredentials(err)
 	}
 
-	if user.Password == nil {
-		return nil, domain.ErrInvalidCredentials(fmt.Errorf("user password is not set"))
+	if user.PasswordHash == nil {
+		return nil, domain.ErrInvalidCredentials(fmt.Errorf("user has no password set"))
 	}
 
-	passing, algo := service.strategies.Password.VerboseVerifyPassword(input.Password, *user.Password)
-	// if not passing, reject login attempt
+	passing, algo := s.strategies.Password.VerboseVerifyPassword(input.Password, *user.PasswordHash)
 	if !passing {
 		return nil, domain.ErrInvalidCredentials(fmt.Errorf("invalid password"))
 	}
 
-	// migrate to new hashing algorithm
-	// previous passwords build with wordpress hashing algorithm
 	if algo != "scrypt" {
-		newPassword := service.strategies.Password.HashPassword(input.Password)
-		if len(newPassword) > 0 {
-			passUpdateErr := service.repository.UpdatePassword(context.Background(), user.ID, newPassword)
-			if passUpdateErr != nil {
-				// Only log this error, because migrate to new hashing algorithm is not critical
-				// In next version, we can remove this logic (when user passwords are already migrated)
-				logger.E(passUpdateErr, logger.Fields{"context": "LoginWithPassword", "action": "migrate password hashing"})
-			}
+		newHash := s.strategies.Password.HashPassword(input.Password)
+		if newHash != "" {
+			_ = s.userRepo.UpdatePassword(ctx, user.ID, newHash)
 		}
 	}
 
-	token, err := service.tokenManager.GenerateJwtTokenWithRefresh(&domain.AuthUser{
-		ID:        user.ID,
-		Email:     user.Email,
-		Role:      user.Role,
-		ClientId:  *user.ClientId,
-		CountryId: user.CountryID,
-		Meta: map[string]any{
-			"avatar_url": user.AvatarURL,
-		},
-	})
-
-	if err != nil {
-		return nil, domain.ErrJwtTokenGenerationFailed(err)
-	}
-
-	// For extenal event logging
-	go service.EventBus.Publish(ctx, domain.UserLoggedInEvent{
-		User: user,
-		Context: &domain.AuthContext{
-			IP:        authContext.IP,
-			UserAgent: authContext.UserAgent,
-			Method:    "password",
-		},
-	})
-
-	session := domain.NewOAuthSessionFromToken(token)
-
-	return session, nil
+	return s.createSession(ctx, user, authCtx)
 }
 
-func (service *LoginService) GetOAuth2URL(ctx context.Context, provider domain.OAuth2Provider, payload domain.OAuth2State) (string, error) {
-	return service.strategies.OAuth2.GetAuthRedirectURL(provider, &payload)
-}
-
-func (service *LoginService) LoginWithOAuth2(ctx context.Context, provider domain.OAuth2Provider, code string, authContext domain.AuthContext) (*domain.OAuthSession, error) {
-	oauth, err := service.strategies.OAuth2.ExchangeCode(provider, code)
-	if err != nil {
-		return nil, domain.ErrInvalidCredentials(err)
-	}
-
-	user := domain.NewUser(oauth.FirstName, oauth.Email, nil, domain.PatientRole)
-
-	rawUser, _ := service.repository.FindByIdentifier(ctx, oauth.Email, string(domain.IdentifierTypeEmail))
-
-	// If user exists, validate account status (banned/deleted)
-	if rawUser != nil {
-		user.ID = rawUser.ID
-		user.Role = rawUser.Role
-		user.ClientId = rawUser.ClientId
-		user.CountryID = rawUser.CountryID
-	} else {
-		// If user not found, create a new user
-		user.Username = oauth.FirstName
-		user.LastName = &oauth.LastName
-		user.AvatarURL = &oauth.AvatarURL
-
-		settings := &domain.UserSettings{
-			Language: "es",
-			Notifications: domain.UserNotificationSettings{
-				Email: true,
-			},
-		}
-
-		if createErr := service.repository.CreateUserWithSettings(ctx, user, settings); createErr != nil {
-			return nil, createErr
-		}
-	}
-
-	// If user has no clientId, create a new client and bind authorization
-	if user.ClientId == nil {
-		// client, policyErr := service.authorization.SetupWithEmail(user.Email, int(service.authorization.GetFreeProfileId()))
-		// if policyErr != nil {
-		// 	return nil, policyErr
-		// }
-
-		// user.ClientId = &client.Id
-		// user.ProfileId = &client.ProfileId
-
-		// binding := &domain.AuthorizationBinding{
-		// 	UserId:    user.ID,
-		// 	ProfileId: client.ProfileId,
-		// 	ClientId:  client.Id,
-		// 	Signature: client.Signature,
-		// }
-		// meta := &domain.UserMeta{
-		// 	EmailVerified:     true,
-		// 	ConfirmationToken: "",
-		// 	VerificationCode:  "",
-		// }
-
-		// if authErr := service.repository.BindAuthorization(ctx, user.ID, binding, meta); authErr != nil {
-		// 	return nil, authErr
-		// }
-	}
-
-	token, err := service.tokenManager.GenerateJwtTokenWithRefresh(&domain.AuthUser{
-		ID:        user.ID,
-		Email:     user.Email,
-		Role:      user.Role,
-		ClientId:  *user.ClientId,
-		CountryId: user.CountryID,
-		Meta: map[string]any{
-			"avatar_url": user.AvatarURL,
-		},
-	})
-
-	if err != nil {
-		return nil, domain.ErrJwtTokenGenerationFailed(err)
-	}
-
-	go service.EventBus.Publish(ctx, domain.UserLoggedInEvent{
-		User: user,
-		Context: &domain.AuthContext{
-			IP:        authContext.IP,
-			UserAgent: authContext.UserAgent,
-			Method:    fmt.Sprintf("oauth2.%s", provider),
-		},
-	})
-
-	session := domain.NewOAuthSessionFromToken(token)
-
-	return session, nil
-}
-
-func (service *LoginService) LoginWithOtpCode(ctx context.Context, input OtpCodeInput, authContext domain.AuthContext) (*domain.OAuthSession, error) {
-	identifierType := detectIdentifierType(input.Identifier)
-	user, err := service.repository.FindByIdentifier(ctx, input.Identifier, identifierType)
+func (s *LoginService) LoginWithOtpCode(ctx context.Context, input OtpCodeInput, authCtx domain.AuthContext) (*domain.OAuthSession, error) {
+	user, err := s.userRepo.FindByIdentifier(ctx, input.Identifier, domain.IdentifierType(detectIdentifierType(input.Identifier)))
 	if err != nil || user == nil {
 		return nil, domain.ErrInvalidCredentials(err)
 	}
 
-	if !service.strategies.OtpCode.CompareOtpCode(input.Code, user.OTPCode) {
+	if user.OTPCode == nil || !s.strategies.OtpCode.CompareOtpCode(input.Code, *user.OTPCode) {
 		return nil, domain.ErrInvalidCredentials(fmt.Errorf("invalid OTP code"))
 	}
 
-	jwtToken, err := service.tokenManager.GenerateJwtTokenWithRefresh(&domain.AuthUser{
-		ID:        user.ID,
-		Email:     user.Email,
-		Role:      user.Role,
-		ClientId:  *user.ClientId,
-		CountryId: user.CountryID,
-		Meta: map[string]any{
-			"avatar_url": user.AvatarURL,
-		},
-	})
-
-	if err != nil {
-		return nil, domain.ErrJwtTokenGenerationFailed(err)
-	}
-
-	go service.EventBus.Publish(ctx, domain.UserLoggedInEvent{
-		User: user,
-		Context: &domain.AuthContext{
-			IP:        authContext.IP,
-			UserAgent: authContext.UserAgent,
-			Method:    "otp",
-		},
-	})
-
-	session := domain.NewOAuthSessionFromToken(jwtToken)
-
-	return session, nil
+	return s.createSession(ctx, user, authCtx)
 }
 
-func (service *LoginService) RefreshToken(ctx context.Context, token string) (*domain.OAuthSession, error) {
-	rawUser, err := service.tokenManager.ValidateRefreshToken(token)
+func (s *LoginService) LoginWithOAuth2(ctx context.Context, provider domain.OAuth2Provider, code string, authCtx domain.AuthContext) (*domain.OAuthSession, error) {
+	oauth, err := s.strategies.OAuth2.ExchangeCode(provider, code)
 	if err != nil {
-		return nil, fmt.Errorf("refreshing token: %w", err)
+		return nil, domain.ErrInvalidCredentials(err)
 	}
 
-	user, err := service.repository.FindByIdentifier(ctx, rawUser.Email, "email")
+	user, err := s.userRepo.FindByIdentifier(ctx, oauth.Email, domain.IdentifierTypeEmail)
 	if err != nil {
-		return nil, fmt.Errorf("user not found: %w", err)
+		// Auto-register user if not found
+		user = &domain.User{
+			ID:        snowflake.Node.Generate(),
+			Email:     oauth.Email,
+			FirstName: &oauth.FirstName,
+			LastName:  &oauth.LastName,
+			AvatarURL: &oauth.AvatarURL,
+			CreatedAt: time.Now().UTC(),
+		}
+		// TODO: Implement user creation logic here if needed for OAuth
 	}
 
-	jwtToken, err := service.tokenManager.GenerateJwtToken(&domain.AuthUser{
-		ID:        user.ID,
-		Email:     user.Email,
-		Role:      user.Role,
-		ClientId:  *user.ClientId,
-		CountryId: user.CountryID,
-		Meta: map[string]any{
-			"avatar_url": user.AvatarURL,
-		},
+	return s.createSession(ctx, user, authCtx)
+}
+
+func (s *LoginService) GetOAuth2URL(ctx context.Context, provider domain.OAuth2Provider, payload domain.OAuth2State) (string, error) {
+	return s.strategies.OAuth2.GetAuthRedirectURL(provider, &payload)
+}
+
+func (s *LoginService) RefreshToken(ctx context.Context, refreshTokenStr string) (*domain.OAuthSession, error) {
+	storedToken, err := s.refreshRepository.FindByHash(ctx, refreshTokenStr)
+	if err != nil {
+		return nil, errors.NotFound("refresh token not found").Cause(err)
+	}
+
+	if storedToken.RevokedAt != nil {
+		return nil, errors.Unauthorized("refresh token revoked")
+	}
+	if storedToken.ExpiresAt.Before(time.Now().UTC()) {
+		return nil, errors.Unauthorized("refresh token expired")
+	}
+
+	user, err := s.userRepo.FindByID(ctx, storedToken.UserID)
+	if err != nil {
+		return nil, errors.NotFound("user not found").Cause(err)
+	}
+
+	token, err := s.tokenManager.GenerateJwtToken(user)
+	if err != nil {
+		return nil, errors.Internal("failed to generate token").Cause(err)
+	}
+
+	_ = s.sessionRepo.Update(ctx, &domain.Session{
+		ID:         storedToken.SessionID,
+		LastSeenAt: time.Now().UTC(),
 	})
 
-	if err != nil {
-		return nil, fmt.Errorf("generating token: %w", err)
-	}
-
 	return &domain.OAuthSession{
-		AccessToken: jwtToken.GetAccessToken(),
-		ExpiresAt:   jwtToken.GetExpiresAt(),
-		ExpiresIn:   jwtToken.GetExpiresIn(),
+		AccessToken: token.GetAccessToken(),
 		TokenType:   "Bearer",
+		ExpiresIn:   token.GetExpiresIn(),
+		ExpiresAt:   token.GetExpiresAt(),
+		User:        user,
 	}, nil
 }
 
-func (service *LoginService) SetupUser(ctx context.Context, input SetupUserInput, authContext domain.AuthContext) (*domain.OAuthSession, error) {
-	user, err := service.repository.FindByIdentifier(ctx, input.Identifier, input.IdentifierType)
-
-	// Reject if have error and this error is diferent to not found
-	if err != nil && !errors.Is(err, domain.ErrNotResults) {
-		return nil, fmt.Errorf("finding user: %w", err)
-	}
-
-	var policy *domain.UserPolicy
-	var policyErr error
-
-	// Perform user creation when not exists in the system
-	// Email is required for user creation
-	if user == nil {
-		// user = domain.NewUser(input.Username, "", nil, domain.PatientRole)
-		// user.CountryID = &input.CountryId
-		// user.AuthType = input.Method
-
-		// switch domain.IdentifierType(input.IdentifierType) {
-		// case domain.IdentifierTypeEmail:
-		// 	user.Email = input.Identifier
-
-		// 	// Perform authorization setup with email
-		// 	policy, policyErr = service.authorization.SetupWithEmail(input.Identifier, input.ProfileId)
-		// case domain.IdentifierTypePhone:
-		// 	user.Email = fmt.Sprintf("%s@users.vayload.com", strings.ReplaceAll(input.Identifier, "+", "")) // Dummy email for phone-based users
-		// 	user.Phone = &input.Identifier
-
-		// 	// Perform authorization setup with phone
-		// 	policy, policyErr = service.authorization.SetupWithPhone(input.Identifier, input.ProfileId)
-		// }
-
-		// If error occurred while setting up user policy
-		// Prevent user creation if policy setup fails
-		if policyErr != nil {
-			return nil, fmt.Errorf("setting up user policy: %w", policyErr)
-		}
-
-		clientId := policy.GetClientId()
-		profileId := policy.GetProfileId()
-		user.ClientId = &clientId
-		user.ProfileId = &profileId
-
-		// Create one user because not founded with given identifier
-		settings := &domain.UserSettings{
-			Language:      "es",
-			Notifications: domain.UserNotificationSettings{},
-		}
-
-		switch domain.IdentifierType(input.IdentifierType) {
-		case domain.IdentifierTypeEmail:
-			settings.Notifications.Email = true
-		case domain.IdentifierTypePhone:
-			settings.Notifications.SMS = true
-			settings.Notifications.WhatsApp = true
-		}
-
-		if createErr := service.repository.CreateUserWithSettings(ctx, user, settings); createErr != nil {
-			return nil, fmt.Errorf("creating user: %w", createErr)
-		}
-	}
-
-	// When policy is nil, it means user already exists
-	if policy == nil {
-		// policy, policyErr = service.authorization.GetAuthorized(user.ID, *user.ClientId)
-		// if policyErr != nil {
-		// 	return nil, fmt.Errorf("getting user policy: %w", policyErr)
-		// }
-	}
-
-	token, err := service.tokenManager.GenerateJwtTokenWithRefresh(&domain.AuthUser{
-		ID:        user.ID,
-		Email:     user.Email,
-		Role:      user.Role,
-		ClientId:  *user.ClientId,
-		CountryId: user.CountryID,
-	})
-
+func (s *LoginService) createSession(ctx context.Context, user *domain.User, authCtx domain.AuthContext) (*domain.OAuthSession, error) {
+	token, err := s.tokenManager.GenerateJwtTokenWithRefresh(user)
 	if err != nil {
 		return nil, domain.ErrJwtTokenGenerationFailed(err)
 	}
 
-	go service.EventBus.Publish(ctx, domain.UserLoggedInEvent{
-		User: user,
-		Context: &domain.AuthContext{
-			IP:        authContext.IP,
-			UserAgent: authContext.UserAgent,
-			Method:    input.Method,
-		},
+	sessionID := strings.ReplaceAll(s.randomizer.GenerateUUID(), "-", "")
+	session := &domain.Session{
+		ID:         sessionID,
+		UserID:     user.ID,
+		IPAddress:  authCtx.IP,
+		UserAgent:  authCtx.UserAgent,
+		LastSeenAt: time.Now().UTC(),
+		ExpiresAt:  token.GetRefreshTokenExpiresAt(),
+		CreatedAt:  time.Now().UTC(),
+	}
+	if err := s.sessionRepo.Create(ctx, session); err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	refreshToken := &domain.RefreshToken{
+		ID:        strings.ReplaceAll(s.randomizer.GenerateUUID(), "-", ""),
+		TokenHash: token.GetRefreshToken(),
+		UserID:    user.ID,
+		SessionID: sessionID,
+		ExpiresAt: token.GetRefreshTokenExpiresAt(),
+		CreatedAt: time.Now().UTC(),
+	}
+	if err := s.refreshRepository.Create(ctx, refreshToken); err != nil {
+		return nil, fmt.Errorf("failed to save refresh token: %w", err)
+	}
+
+	_ = s.userRepo.UpdateLastSignIn(ctx, user.ID, authCtx.IP, authCtx.UserAgent)
+
+	go s.eventBus.Publish(ctx, domain.UserLoggedInEvent{
+		User:    user,
+		Context: &authCtx,
 	})
 
-	session := domain.NewOAuthSession(token, user, policy, nil)
-
-	return session, nil
+	return domain.NewOAuthSession(token, user, user.Metadata), nil
 }
 
-func (service *LoginService) GetCurrentSession(ctx context.Context, userId string, accessToken string) (*domain.OAuthSession, error) {
-	user, err := service.repository.FindByIdentifier(ctx, userId, string(domain.IdentifierUserId))
-	if err != nil && !errors.Is(err, domain.ErrNotResults) {
-		return nil, fmt.Errorf("finding user: %w", err)
+func (s *LoginService) GetCurrentSession(ctx context.Context, userId string, accessToken string) (*domain.OAuthSession, error) {
+	id, _ := snowflake.ParseString(userId)
+	user, err := s.userRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, domain.ErrUserNotFound(err)
 	}
 
-	// Perform user creation when not exists in the system
-	if user == nil {
-		return nil, domain.ErrUserNotFound(fmt.Errorf("user not found with ID: %s", userId))
-	}
-
-	// When policy is nil, it means user already exists
-	// policy, policyErr := service.authorization.GetAuthorized(user.ID, *user.ClientId)
-	// if policyErr != nil {
-	// 	return nil, fmt.Errorf("getting user policy: %w", policyErr)
-	// }
-
-	session := &domain.OAuthSession{
+	return &domain.OAuthSession{
 		AccessToken: accessToken,
 		TokenType:   "Bearer",
 		User:        user,
-		// Policies:    policy,
-		Meta: nil,
-	}
-
-	return session, nil
+	}, nil
 }
 
-func (service *LoginService) GetUserPermissions(ctx context.Context, userId snowflake.ID) (*domain.UserPolicy, error) {
-	user, err := service.repository.FindByIdentifier(ctx, userId.String(), string(domain.IdentifierUserId))
-	if err != nil {
-		return nil, fmt.Errorf("finding user: %w", err)
-	}
-	if user.ClientId == nil {
-		return nil, domain.ErrInvalidCredentials(nil)
-	}
-
-	// policy, err := service.authorization.GetAuthorized(userId, *user.ClientId)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("getting user policy: %w", err)
-	// }
-
-	// return policy, nil
-	return nil, nil
+func (s *LoginService) GetUserPermissions(ctx context.Context, userId snowflake.ID) ([]string, error) {
+	return []string{"read", "write"}, nil
 }

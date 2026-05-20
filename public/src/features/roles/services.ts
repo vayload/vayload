@@ -1,6 +1,6 @@
-import { rolesTable, permissionsTable } from "$lib/db/tables";
 import type { RoleDTO, PermissionDTO } from "./dtos";
 import type { Role, Permission } from "./types";
+import { httpClient } from "$lib/api/client";
 
 export class RolesService {
     static toRole(dto: RoleDTO): Role {
@@ -12,31 +12,31 @@ export class RolesService {
     }
 
     async findAllRoles(): Promise<Role[]> {
-        const result = await rolesTable.findMany({ sort: { field: "name", order: "asc" }, pageSize: 100 });
+        const result = await httpClient.get<{ data: RoleDTO[] }>("/roles");
         return result.data.map(RolesService.toRole);
     }
 
     async findRole(id: string): Promise<Role | null> {
-        const dto = await rolesTable.findOne(id);
+        const dto = await httpClient.get<RoleDTO | null>(`/roles/${id}`);
         return dto ? RolesService.toRole(dto) : null;
     }
 
     async createRole(data: { name: string; description: string }): Promise<Role> {
-        const dto = await rolesTable.create(data);
+        const dto = await httpClient.post<RoleDTO>("/roles", data);
         return RolesService.toRole(dto);
     }
 
     async updateRole(id: string, data: Partial<{ name: string; description: string }>): Promise<Role> {
-        const dto = await rolesTable.update(id, data);
+        const dto = await httpClient.patch<RoleDTO>(`/roles/${id}`, data);
         return RolesService.toRole(dto);
     }
 
     async deleteRole(id: string): Promise<void> {
-        return rolesTable.delete(id);
+        return httpClient.delete<void>(`/roles/${id}`);
     }
 
     async findAllPermissions(): Promise<Permission[]> {
-        const result = await permissionsTable.findMany({ sort: { field: "resource", order: "asc" }, pageSize: 200 });
+        const result = await httpClient.get<{ data: PermissionDTO[] }>("/permissions");
         return result.data.map(RolesService.toPermission);
     }
 

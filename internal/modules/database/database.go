@@ -1,3 +1,11 @@
+/*
+ * SPDX-License-Identifier: MIT
+ *
+ * Vayload - Database
+ *
+ * Copyright (c) 2026 Alex Zweiter
+ */
+
 package database
 
 import (

@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { notificationStore } from "$lib/stores/notificationStore.svelte";
-    import { userStore } from "$lib/stores/userStore.svelte";
+    import { settingsStore } from "$features/settings";
+    import { authStore } from "$features/auth";
     import { Search, Bell, Menu, ChevronDown } from "@lucide/svelte";
     import NotificationPanel from "./NotificationPanel.svelte";
     import * as InputGroup from "$lib/components/ui/input-group/index.js";
@@ -46,12 +46,12 @@
         <div class="relative">
             <button
                 onclick={handleNotificationClick}
-                class="relative p-2 rounded-lg transition-colors {notificationStore.hasUnread
+                class="relative p-2 rounded-lg transition-colors {settingsStore.unreadCount > 0
                     ? 'text-indigo-600 bg-indigo-50'
                     : 'text-gray-500 hover:bg-gray-100'}"
             >
                 <Bell size={20} />
-                {#if notificationStore.hasUnread}
+                {#if settingsStore.unreadCount > 0}
                     <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
                 {/if}
             </button>
@@ -64,17 +64,17 @@
         >
             <div class="text-right hidden sm:block leading-tight">
                 <div class="text-sm font-medium text-gray-900">
-                    {userStore.currentUser?.first_name ?? "User"}
-                    {userStore.currentUser?.last_name ?? ""}
+                    {authStore.user?.firstName ?? "User"}
+                    {authStore.user?.lastName ?? ""}
                 </div>
                 <div class="text-xs text-gray-500">
-                    {userStore.currentUser?.is_super_admin ? "Super Admin" : "User"}
+                    {authStore.user?.isSuperAdmin ? "Super Admin" : "User"}
                 </div>
             </div>
             <div
                 class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm ring-2 ring-white"
             >
-                {userStore.currentUser?.first_name?.[0] ?? "U"}{userStore.currentUser?.last_name?.[0] ?? ""}
+                {authStore.user?.firstName?.[0] ?? "U"}{authStore.user?.lastName?.[0] ?? ""}
             </div>
             <ChevronDown size={14} class="text-gray-400 hidden sm:block mr-1" />
         </button>

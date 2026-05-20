@@ -1,5 +1,5 @@
 import { DateTime } from "$lib/shared/datetime";
-import { projectsTable, notificationsTable } from "$lib/db/tables";
+import { httpClient } from "$lib/api/client";
 import type { ProjectDTO, UpdateProjectDTO, NotificationDTO } from "./dtos";
 import type { ProjectSettings, AppNotification } from "./types";
 
@@ -32,38 +32,36 @@ export class SettingsService {
     }
 
     async getProject(id: string): Promise<ProjectSettings | null> {
-        const dto = await projectsTable.findOne(id);
+        const dto = await httpClient.get<ProjectDTO | null>(`/projects/${id}`);
         return dto ? SettingsService.toProject(dto as unknown as ProjectDTO) : null;
     }
 
     async getProjects(): Promise<ProjectSettings[]> {
-        const result = await projectsTable.findMany({ sort: { field: "name", order: "asc" }, pageSize: 100 });
-        return result.data.map((d) => SettingsService.toProject(d as unknown as ProjectDTO));
+        const result = await httpClient.get<{ data: ProjectDTO[] }>("/projects", {
+            pageSize: 100,
+        });
+
+        return result.data.map((d) => SettingsService.toProject(d));
     }
 
     async updateProject(id: string, data: UpdateProjectDTO): Promise<ProjectSettings> {
-        const dto = await projectsTable.update(id, {
-            ...data,
-            updated_at: new Date().toISOString(),
-        } as any);
+        const dto = await httpClient.patch<ProjectDTO>(`/projects/${id}`, data);
         return SettingsService.toProject(dto as unknown as ProjectDTO);
     }
 
     async getNotifications(userId: string): Promise<AppNotification[]> {
-        const result = await notificationsTable.findMany({
-            where: { user_id: userId } as any,
-            sort: { field: "created_at", order: "desc" },
-            pageSize: 50,
+        const result = await httpClient.get<{ data: NotificationDTO[] }>("/notifications", {
+            userId,
         });
-        return result.data.map((d) => SettingsService.toNotification(d as unknown as NotificationDTO));
+        return result.data.map((d) => SettingsService.toNotification(d));
     }
 
     async markNotificationRead(id: string): Promise<void> {
-        await notificationsTable.update(id, { status: "read" } as any);
+        await httpClient.patch(`/notifications/${id}`, { status: "read" });
     }
 
     async dismissNotification(id: string): Promise<void> {
-        await notificationsTable.update(id, { status: "dismissed" } as any);
+        await httpClient.patch(`/notifications/${id}`, { status: "dismissed" });
     }
 }
 

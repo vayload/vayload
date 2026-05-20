@@ -1,8 +1,8 @@
 import { DateTime } from "$lib/shared/datetime";
-import { usersTable } from "$lib/db/tables";
 import type { UserDTO, CreateUserDTO, UpdateUserDTO } from "./dtos";
 import type { User } from "./types";
 import type { PaginatedResult } from "$lib/db/simulator";
+import { httpClient } from "$lib/api/client";
 
 export class UsersService {
     static toUser(dto: UserDTO): User {
@@ -28,22 +28,10 @@ export class UsersService {
             search?: string;
         } = {},
     ): Promise<PaginatedResult<User>> {
-        const where: any = {};
-        if (params.search) {
-            const q = params.search.toLowerCase();
-            // Simulate a full-text search by checking email/username
-            where.email = (v: string) => v.toLowerCase().includes(q) || false;
-        }
-
-        const result = await usersTable.findMany({
-            where: params.search
-                ? {
-                      email: (v: string) => v.toLowerCase().includes(params.search!.toLowerCase()),
-                  }
-                : undefined,
-            sort: { field: "created_at", order: "desc" },
+        const result = await httpClient.get<PaginatedResult<UserDTO>>("/users", {
             page: params.page,
             pageSize: params.pageSize ?? 20,
+            search: params.search,
         });
 
         return {
@@ -53,34 +41,23 @@ export class UsersService {
     }
 
     async findOne(id: string): Promise<User | null> {
-        const dto = await usersTable.findOne(id);
+        const dto = await httpClient.get<UserDTO | null>(`/users/${id}`);
         if (!dto) return null;
         return UsersService.toUser(dto as unknown as UserDTO);
     }
 
     async create(data: CreateUserDTO): Promise<User> {
-        const now = new Date().toISOString();
-        const dto = await usersTable.create({
-            ...data,
-            avatar_url: data.avatar_url ?? null,
-            is_super_admin: data.is_super_admin ?? false,
-            last_sign_in_at: now,
-            created_at: now,
-            updated_at: now,
-        } as any);
+        const dto = await httpClient.post<UserDTO>("/users", data);
         return UsersService.toUser(dto as unknown as UserDTO);
     }
 
     async update(id: string, data: UpdateUserDTO): Promise<User> {
-        const dto = await usersTable.update(id, {
-            ...data,
-            updated_at: new Date().toISOString(),
-        } as any);
+        const dto = await httpClient.patch<UserDTO>(`/users/${id}`, data);
         return UsersService.toUser(dto as unknown as UserDTO);
     }
 
     async delete(id: string): Promise<void> {
-        return usersTable.delete(id);
+        return httpClient.delete<void>(`/users/${id}`);
     }
 }
 

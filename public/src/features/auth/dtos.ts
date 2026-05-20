@@ -1,8 +1,3 @@
-/**
- * Auth DTOs — shape of data as it comes from the API/DB layer.
- * Always uses snake_case and string dates.
- */
-
 export interface UserDTO {
     id: string;
     first_name: string;

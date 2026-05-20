@@ -65,12 +65,15 @@ func AuthHttpMiddleware(registry vayload.Container, config *config.Config) vaylo
 			})
 		}
 
-		req.Locals(httpi.HTTP_AUTH_KEY, &vayload.HttpAuth{
+		auth := &vayload.HttpAuth{
 			UserId:      token.ID,
-			Role:        string(token.Role),
+			Role:        token.Role,
 			AccessToken: tokenStr,
-			CountryId:   token.CountryId,
-		})
+		}
+		if token.CountryID != 0 {
+			auth.CountryId = &token.CountryID
+		}
+		req.Locals(httpi.HTTP_AUTH_KEY, auth)
 
 		return req.Next()
 	}

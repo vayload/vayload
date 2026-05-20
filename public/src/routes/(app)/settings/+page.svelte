@@ -6,9 +6,9 @@
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
     import * as Alert from "$lib/components/ui/alert";
-    import { appContext } from "$lib/stores/app-context.svelte";
     import EmptyProject from "$lib/components/empty-project.svelte";
     import AlertDialog from "$lib/components/alert-dialog.svelte";
+    import { appContext } from "../../../shared/store.svelte";
 
     let activeTab = $state("general");
     const project = $derived(appContext.currentProject);

@@ -1,11 +1,17 @@
 <script lang="ts">
     import SectionHeader from "$lib/components/SectionHeader.svelte";
-    import { AUDIT_LOGS, type AuditLog } from "$lib/data";
+    import { auditLogsStore } from "$features/audit-logs";
     import { Search, Filter } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import * as Table from "$lib/components/ui/table";
     import { Badge } from "$lib/components/ui/badge";
+
+    let search = $state("");
+
+    $effect(() => {
+        auditLogsStore.fetch(search);
+    });
 
     function formatDate(dateString: string): string {
         const date = new Date(dateString);
@@ -34,14 +40,19 @@
             <div class="flex items-center gap-2">
                 <div class="relative">
                     <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input type="text" placeholder="Search logs..." class="pl-9 pr-4 w-64" />
+                    <Input
+                        type="text"
+                        placeholder="Search logs..."
+                        class="pl-9 pr-4 w-64"
+                        bind:value={search}
+                    />
                 </div>
                 <Button variant="outline" size="sm">
                     <Filter size={16} class="mr-2" />
                     Filters
                 </Button>
             </div>
-            <div class="text-sm text-muted-foreground">Showing {AUDIT_LOGS.length} entries</div>
+            <div class="text-sm text-muted-foreground">Showing {auditLogsStore.total} entries</div>
         </div>
 
         <Table.Root>
@@ -55,7 +66,7 @@
                 </Table.Row>
             </Table.Header>
             <Table.Body>
-                {#each AUDIT_LOGS as log}
+                {#each auditLogsStore.items as log}
                     <Table.Row class="hover:bg-muted/50">
                         <Table.Cell class="text-sm text-muted-foreground">
                             {formatDate(log.created_at)}

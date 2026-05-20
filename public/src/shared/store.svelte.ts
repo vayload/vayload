@@ -1,4 +1,6 @@
-import { ulid, type Project, type ProjectInput, type User } from "$lib/data";
+import type { User } from "$features/users";
+import { ulid } from "$lib/db/utils";
+import type { Project, ProjectInput } from "$lib/types";
 
 export const slugify = (str: string): string => {
     return str

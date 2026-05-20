@@ -33,7 +33,7 @@ func NewConnection(ctx context.Context, user, password, host, port, schema strin
 	ctx, cancel := context.WithCancel(ctx)
 
 	return &databaseConnection{
-		BaseConnection: drivers.NewBaseConnection(db, ctx, cancel, connection.MySQLDriver),
+		BaseConnection: drivers.NewBaseConnection(db, ctx, cancel, connection.MySQLDriver, NewQueryGrammar()),
 		User:           user,
 		Password:       password,
 		Host:           host,

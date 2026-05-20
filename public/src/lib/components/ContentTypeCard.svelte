@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Collection } from "$lib/data";
+    import type { Collection } from "$lib/types";
     import { type Snippet } from "svelte";
     import { Settings } from "@lucide/svelte";
 

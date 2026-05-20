@@ -1,7 +1,7 @@
 <script lang="ts">
     import SectionHeader from "$lib/components/SectionHeader.svelte";
     import ScrollableTabs from "$lib/components/ScrollableTabs.svelte";
-    import { entriesStore } from "$lib/stores/entriesStores.svelte";
+    import { entriesStore } from "$features/entries";
     import { Check, FileText, DatabaseBackup, Clock, Search, Filter, Plus, MoreHorizontal } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";

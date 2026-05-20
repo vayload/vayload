@@ -1,18 +1,25 @@
 <script lang="ts">
     import SectionHeader from "$lib/components/SectionHeader.svelte";
-    import { ROLES, type Role } from "$lib/data";
+    import { rolesStore, type Role } from "$features/roles";
     import { Shield } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
     import { Badge } from "$lib/components/ui/badge";
     import * as Avatar from "$lib/components/ui/avatar";
 
-    const roleData = [
-        { role: ROLES[0], users: 3, type: "System" },
-        { role: ROLES[1], users: 12, type: "Custom" },
-        { role: ROLES[2], users: 5, type: "Custom" },
-        { role: ROLES[3], users: 0, type: "System" },
-    ];
+    import { onMount } from "svelte";
+
+    let roleData = $state<Array<{ role: Role; users: number; type: string }>>([]);
+
+    onMount(async () => {
+        await rolesStore.fetchRoles();
+        const counts = [3, 12, 5, 0, 2, 4, 1, 6];
+        roleData = rolesStore.roles.map((role, idx) => ({
+            role,
+            users: counts[idx % counts.length],
+            type: idx < 2 ? "System" : "Custom",
+        }));
+    });
 </script>
 
 <div class="flex flex-col h-full">

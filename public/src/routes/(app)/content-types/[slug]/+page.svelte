@@ -1,33 +1,3 @@
-<!-- <script lang="ts">
-    import { page } from "$app/state";
-    import ContentTypeSelector from "$lib/components/field-types/content-type-selector.svelte";
-    import { fetchCollectionBySlug } from "$lib/data";
-
-    let collection = $state<any>(null);
-    let loading = $state(true);
-
-    $effect(() => {
-        if (page.params.slug) {
-            fetchCollectionBySlug(page.params.slug).then((res) => {
-                collection = res;
-                loading = false;
-            });
-        }
-    });
-
-    const onUpdate = () => {
-        console.log("update");
-    };
-</script>
-
-<div>
-    {#if loading}
-        <p>Loading...</p>
-    {:else}
-        <ContentTypeSelector {collection} {onUpdate} />
-    {/if}
-</div> -->
-
 <script lang="ts">
     import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card";
     import { Label } from "$lib/components/ui/label";
@@ -56,7 +26,8 @@
     import { goto } from "$app/navigation";
 
     import { page } from "$app/state";
-    import { fetchCollectionBySlug, type Collection, type FieldSchema } from "$lib/data";
+    import type { Collection, FieldSchema } from "$lib/types";
+    import { contentTypesStore } from "$features/content-types";
     import FieldTypeGrid from "$lib/components/field-types/FieldTypeGrid.svelte";
     import Number from "@tabler/icons-svelte/icons/number";
 
@@ -69,23 +40,29 @@
 
     $effect(() => {
         if (page.params.slug) {
-            fetchCollectionBySlug(page.params.slug).then((res) => {
-                if (!res) {
+            contentTypesStore.selectBySlug(page.params.slug).then(() => {
+                if (!contentTypesStore.selected) {
                     status.error = true;
                     status.message = "Collection not found";
-
+                    loading = false;
                     return;
                 }
 
-                collection = res;
-
+                collection = contentTypesStore.selected;
                 loading = false;
             });
         }
     });
 
-    const onUpdate = (data: any) => {
-        console.log("update", data);
+    const onUpdate = (data: Collection) => {
+        if (!data?.id) return;
+        contentTypesStore.update(data.id, {
+            name: data.name,
+            fields_schema: data.fields_schema,
+            settings: data.settings,
+            entries: data.entries,
+            single: data.single,
+        });
     };
 
     let isAddingField = $state(false);

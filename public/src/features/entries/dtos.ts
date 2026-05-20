@@ -31,3 +31,13 @@ export interface CreateEntryDTO {
     author_id: string;
     author: string;
 }
+
+export interface UpdateEntryDTO {
+    title?: string;
+    slug?: string;
+    status?: "published" | "draft" | "archived" | "scheduled";
+    author?: string;
+    content_type?: string;
+    collection_slug?: string;
+    author_id?: string;
+}

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Activity } from "$lib/data";
+    import type { Activity } from "$lib/types";
 
     interface Props {
         activities: Activity[];

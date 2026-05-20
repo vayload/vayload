@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { projectStore } from "$lib/stores/projectStore.svelte";
     import {
         ChevronDown,
         Check,
@@ -15,6 +14,7 @@
         Settings,
     } from "@lucide/svelte";
     import { page } from "$app/state";
+    import { appContext } from "../../shared/store.svelte";
 
     interface Props {
         isMobileOpen?: boolean;
@@ -54,7 +54,7 @@
     let isDropdownOpen = $state(false);
 
     function handleProjectSwitch(projectId: string) {
-        projectStore.setCurrentProject(projectId);
+        appContext.selectProject(projectId);
         isDropdownOpen = false;
     }
 
@@ -91,7 +91,7 @@
                         {projectStore.currentProject?.name ?? "Select Project"}
                     </div> -->
                     <div class="text-[10px] uppercase tracking-wider text-neutral-500">
-                        {projectStore.currentProject?.locale ?? ""}
+                        {appContext.currentProject?.locale ?? ""}
                     </div>
                 </div>
                 <ChevronDown
@@ -107,14 +107,14 @@
                 class="absolute top-14 left-2 right-2 bg-neutral-800 border border-neutral-700 rounded-xl shadow-2xl z-50 overflow-hidden"
             >
                 <div class="py-2">
-                    {#each projectStore.projects as proj}
+                    {#each appContext.projects as proj}
                         <button
                             onclick={() => handleProjectSwitch(proj.id)}
                             class="w-full text-left px-4 py-2.5 text-sm hover:bg-neutral-700 flex items-center justify-between group transition-colors"
                         >
                             <div>
                                 <div
-                                    class="font-medium {proj.id === projectStore.currentProject?.id
+                                    class="font-medium {proj.id === appContext.currentProject?.id
                                         ? 'text-white'
                                         : 'text-neutral-400 group-hover:text-neutral-200'}"
                                 >
@@ -122,7 +122,7 @@
                                 </div>
                                 <div class="text-[10px] text-neutral-500">{proj.locale}</div>
                             </div>
-                            {#if proj.id === projectStore.currentProject?.id}
+                            {#if proj.id === appContext.currentProject?.id}
                                 <Check size={14} class="text-orange-400" />
                             {/if}
                         </button>

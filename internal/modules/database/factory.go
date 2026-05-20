@@ -1,3 +1,11 @@
+/*
+ * SPDX-License-Identifier: MIT
+ *
+ * Vayload - Database
+ *
+ * Copyright (c) 2026 Alex Zweiter
+ */
+
 package database
 
 import (
@@ -35,11 +43,11 @@ func (c *connectionFactory) CreateConnection(ctx context.Context, driver connect
 func (c *connectionFactory) CreateSchemaBuilder(ctx context.Context, driver connection.DatabaseDriver, conn connection.DatabaseConnection) (*builder.SchemaBuilder, error) {
 	switch driver {
 	case connection.PostgreSQLDriver:
-		return builder.NewSchemaBuilder(postgres.NewGrammar(), conn), nil
+		return builder.NewSchemaBuilder(postgres.NewSchemaGrammar(), conn), nil
 	case connection.MySQLDriver:
-		return builder.NewSchemaBuilder(mysql.NewGrammar(), conn), nil
+		return builder.NewSchemaBuilder(mysql.NewSchemaGrammar(), conn), nil
 	case connection.SQLiteDriver:
-		return builder.NewSchemaBuilder(sqlite3.NewGrammar(), conn), nil
+		return builder.NewSchemaBuilder(sqlite3.NewSchemaGrammar(), conn), nil
 	default:
 		return nil, fmt.Errorf("driver %s currently not supported", driver)
 	}

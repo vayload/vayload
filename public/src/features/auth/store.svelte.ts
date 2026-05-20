@@ -1,7 +1,8 @@
 import { authService } from "./services";
 import type { AuthUser } from "./types";
+import { setCookie, deleteCookie } from "$lib/shared/cookies";
 
-const USER_KEY = "cms_auth_token";
+const TOKEN_KEY = "cms_auth_token";
 
 class AuthStore {
     private currentUser = $state<AuthUser | null>(null);
@@ -24,7 +25,7 @@ class AuthStore {
             const data = await authService.signUp(email, password, username);
             if (data) {
                 this.currentUser = data;
-                sessionStorage.setItem(USER_KEY, data.id);
+                setCookie(TOKEN_KEY, data.id, 7);
             } else {
                 this._error = "Failed to sign up";
             }
@@ -72,7 +73,7 @@ class AuthStore {
             const data = await authService.loginWithPassword(email, password);
             if (data) {
                 this.currentUser = data;
-                sessionStorage.setItem("cms_auth_token", data.id);
+                setCookie(TOKEN_KEY, data.id, 7);
             } else {
                 this._error = "Failed to login";
             }
@@ -106,12 +107,22 @@ class AuthStore {
     }
 
     /**
+     * Checks if the current user has a specific permission.
+     *
+     * @param permission
+     */
+    public can(permission: string): boolean {
+        return Boolean(this.currentUser && this.hasPermission(permission));
+    }
+
+    /**
      * Logs out the current user.
      */
     public async logout() {
         await authService.logout();
 
         this.currentUser = null;
+        deleteCookie(TOKEN_KEY);
     }
 
     public get user() {

@@ -4,12 +4,12 @@
     import * as Select from "$lib/components/ui/select/index.js";
     import { Input } from "$lib/components/ui/input/index.js";
     import { Button } from "$lib/components/ui/button/index.js";
-    import { appContext } from "$lib/stores/app-context.svelte";
     import { fly } from "svelte/transition";
     import FolderPlusIcon from "@lucide/svelte/icons/folder-plus";
     import GlobeIcon from "@lucide/svelte/icons/globe";
     import ClockIcon from "@lucide/svelte/icons/clock";
-    import type { ProjectInput } from "$lib/data";
+    import type { ProjectInput } from "$lib/types";
+    import { appContext } from "../../shared/store.svelte";
 
     interface Props {
         open: boolean;

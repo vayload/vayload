@@ -1,7 +1,7 @@
 <script lang="ts">
     import SectionHeader from "$lib/components/SectionHeader.svelte";
     import ScrollableTabs from "$lib/components/ScrollableTabs.svelte";
-    import { fetchIntegrations, type Integration } from "$lib/data";
+    import { pluginsStore } from "$features/plugins";
     import { CreditCard, Activity as AnalyticsIcon, Mail, DatabaseBackup } from "@lucide/svelte";
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
@@ -9,12 +9,11 @@
     import { onMount } from "svelte";
 
     let activeTab = $state("all");
-    let integrations = $state<Integration[]>([]);
-    let loading = $state(true);
+    let integrations = $derived(pluginsStore.items);
+    let loading = $derived(pluginsStore.loading);
 
     onMount(async () => {
-        integrations = await fetchIntegrations();
-        loading = false;
+        await pluginsStore.fetchAll();
     });
 
     function handleTabChange(tabId: string) {

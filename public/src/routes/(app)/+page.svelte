@@ -2,17 +2,16 @@
     import SectionHeader from "$lib/components/SectionHeader.svelte";
     import StatCard from "$lib/components/StatCard.svelte";
     import ActivityFeed from "$lib/components/ActivityFeed.svelte";
-    import { fetchActivities, type Activity } from "$lib/data";
+    import { dashboardStore } from "$features/dashboard";
     import { Activity as ActivityIcon, Users, FileText, Clock } from "@lucide/svelte";
     import { onMount } from "svelte";
     import Chart from "$lib/components/chart.svelte";
 
-    let activities = $state<Activity[]>([]);
-    let loading = $state(true);
+    let activities = $derived(dashboardStore.activities);
+    let loading = $derived(dashboardStore.loading);
 
     onMount(async () => {
-        activities = await fetchActivities();
-        loading = false;
+        await dashboardStore.fetchActivities();
     });
 
     const chartData = [40, 70, 45, 90, 60, 80, 50, 40, 70, 45, 90, 60, 75, 50, 85];

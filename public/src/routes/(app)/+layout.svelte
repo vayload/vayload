@@ -2,13 +2,13 @@
     import Sidebar from "$lib/components/Sidebar.svelte";
     import Header from "$lib/components/Header.svelte";
     import CreateProjectModal from "$lib/components/CreateProjectModal.svelte";
-    import { appContext } from "$lib/stores/app-context.svelte";
-    import { userStore } from "$lib/stores/userStore.svelte";
-    import { notificationStore } from "$lib/stores/notificationStore.svelte";
+    import { authStore } from "$features/auth";
+    import { settingsStore } from "$features/settings";
     import { onMount } from "svelte";
     import { page } from "$app/state";
     import type { Snippet } from "svelte";
     import { fly } from "svelte/transition";
+    import { appContext } from "../../shared/store.svelte";
 
     interface Props {
         children: Snippet;
@@ -20,11 +20,10 @@
     let showCreateProject = $state(false);
 
     onMount(async () => {
-        await Promise.all([
-            appContext.fetchProjects(),
-            userStore.loadCurrentUser(),
-            notificationStore.loadNotifications(),
-        ]);
+        await Promise.all([appContext.fetchProjects(), authStore.fetchSession()]);
+        if (authStore.user) {
+            await settingsStore.loadNotifications(authStore.user.id);
+        }
     });
 
     $effect(() => {

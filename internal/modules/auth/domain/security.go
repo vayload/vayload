@@ -8,34 +8,16 @@
 
 package domain
 
-import "time"
 
 // The UserTokenManager interface defines methods for generating and validating user access tokens.
 type UserTokenManager interface {
-	GenerateJwtTokenWithRefresh(user *AuthUser) (SignedTokenWithRefresh, error)
-	GenerateJwtToken(user *AuthUser) (SignedToken, error)
-	ValidateToken(token string) (*AuthUser, error)
+	GenerateJwtTokenWithRefresh(user *User) (SignedTokenWithRefresh, error)
+	GenerateJwtToken(user *User) (SignedToken, error)
+	ValidateToken(token string) (*User, error)
 
 	// refresh
 	CreateRefreshToken(payload string) string
-	ValidateRefreshToken(tokenString string) (*AuthUser, error)
-}
-
-// The SignedToken interface defines methods for accessing token properties.
-type SignedToken interface {
-	GetPayload() any
-	GetMeta() map[string]any
-	GetAccessToken() string
-	GetExpiresAt() time.Time
-	GetExpiresIn() int64
-}
-
-// SignedTokenWithRefresh extends SignedToken with refresh token capabilities.
-type SignedTokenWithRefresh interface {
-	SignedToken
-	GetRefreshToken() string
-	GetRefreshTokenExpiresAt() time.Time
-	GetRefreshTokenExpiresIn() int64
+	ValidateRefreshToken(tokenString string) (*User, error)
 }
 
 // The SecureRandomizer interface defines methods for generating random strings and codes.

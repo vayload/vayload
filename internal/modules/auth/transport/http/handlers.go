@@ -376,23 +376,23 @@ func (h *AuthHttpHandler) RegisterChangeEmailConfirm(req vayload.HttpRequest, re
 // ============================= Internal Methods ==============================
 
 // This method is used for internal services, for setup authentication (create or signing the current user)
-func (h *AuthHttpHandler) InternalSetup(req vayload.HttpRequest, res vayload.HttpResponse) error {
-	input := login.SetupUserInput{}
-	if err := req.ValidateBody(&input); err != nil {
-		return httpi.ErrWrapping(err)
-	}
+// func (h *AuthHttpHandler) InternalSetup(req vayload.HttpRequest, res vayload.HttpResponse) error {
+// 	input := login.SetupUserInput{}
+// 	if err := req.ValidateBody(&input); err != nil {
+// 		return httpi.ErrWrapping(err)
+// 	}
 
-	authContext := domain.AuthContext{
-		IP:        req.GetIP(),
-		UserAgent: req.GetUserAgent(),
-	}
-	session, err := h.loginService.SetupUser(req.Context(), input, authContext)
-	if err != nil {
-		return errors.MappingErrToHttp(err)
-	}
+// 	authContext := domain.AuthContext{
+// 		IP:        req.GetIP(),
+// 		UserAgent: req.GetUserAgent(),
+// 	}
+// 	session, err := h.loginService.SetupUser(req.Context(), input, authContext)
+// 	if err != nil {
+// 		return errors.MappingErrToHttp(err)
+// 	}
 
-	return res.Status(200).Json(session.ToJson())
-}
+// 	return res.Status(200).Json(session.ToJson())
+// }
 
 // ============================= Analytics Methods ==============================
 
@@ -642,11 +642,11 @@ func (handler *AuthHttpHandler) HttpRoutes() []vayload.HttpRoutesGroup {
 
 		// ============================== INTERNAL ROUTES ==============================
 		// These routes are for internal services use only and should not be exposed to the public
-		{
-			Method:  vayload.HttpMethod(httpi.POST),
-			Path:    "/auth/__internal__/setup",
-			Handler: handler.InternalSetup,
-		},
+		// {
+		// 	Method:  vayload.HttpMethod(httpi.POST),
+		// 	Path:    "/auth/__internal__/setup",
+		// 	Handler: handler.InternalSetup,
+		// },
 
 		// ============================== ANALYTICS ROUTES ==============================
 		// These routes require admin authentication via X-Auth-Token header

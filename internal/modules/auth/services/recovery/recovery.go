@@ -38,7 +38,7 @@ func NewRecoveryService(repository domain.AuthRepository, strategies *RecoverySt
 
 // Initiates the password recovery process for a user identified by their email.
 func (service *RecoveryService) RequestPasswordRecovery(ctx context.Context, email string) error {
-	user, err := service.repository.FindByIdentifier(ctx, email, string(domain.IdentifierTypeEmail))
+	user, err := service.repository.FindByIdentifier(ctx, email, domain.IdentifierTypeEmail)
 	if err != nil || user == nil {
 		return domain.ErrUserNotFound(err)
 	}
